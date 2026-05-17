@@ -4,8 +4,9 @@ import React from 'react'
 import Layout from './components/layout/Layout'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
+import Dashboard from './pages/Dashboard'
 
-const Dashboard = () => <Layout><div>Dashboard</div></Layout>
+const DashboardPage = () => <Layout><Dashboard /></Layout>
 const Ventas = () => <Layout><div>Ventas</div></Layout>
 const Gastos = () => <Layout><div>Gastos</div></Layout>
 const Clientes = () => <Layout><div>Clientes</div></Layout>
@@ -33,7 +34,8 @@ function App() {
       <Routes>
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/registro" element={<PublicRoute><Registro /></PublicRoute>} />
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/ventas" element={<ProtectedRoute><Ventas /></ProtectedRoute>} />
         <Route path="/gastos" element={<ProtectedRoute><Gastos /></ProtectedRoute>} />
         <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />

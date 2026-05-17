@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
-import imgChanguita from '../../assets/logoChanguita.svg'
 import { ReactComponent as IconBusqueda } from '../../assets/icons/busqueda.svg'
 
 interface TopBarProps {
@@ -13,20 +12,20 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
 
     return (
         <>
-            <header className="fixed top-0 left-0 right-0 h-[64px] bg-[#f8faf8] flex items-center justify-between px-4 md:px-8 z-40 border-b border-[rgba(236,238,236,0.5)]">
+            <header className="fixed top-0 left-0 right-0 h-[64px] bg-[#f8faf8] flex items-center justify-between px-4 md:px-8 md:pl-[320px] z-40 border-b border-[rgba(236,238,236,0.5)]">
 
-                {/* Left — hamburguesa + logo */}
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={onMenuToggle}
-                        className="md:hidden p-2 rounded-[8px] hover:bg-[#f0f4f1] transition-colors"
-                    >
-                        <svg className="w-5 h-5 text-[#506859]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
-                    <img src={imgChanguita} alt="Changuita" className="h-[28px]" />
-                </div>
+                {/* Hamburguesa solo en mobile */}
+                <button
+                    onClick={onMenuToggle}
+                    className="md:hidden p-2 rounded-[8px] hover:bg-[#f0f4f1] transition-colors"
+                >
+                    <svg className="w-5 h-5 text-[#506859]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+
+                {/* Espaciador — empuja el contenido a la derecha en mobile */}
+                <div className="flex-1 md:flex-none" />
 
                 {/* Right */}
                 <div className="flex items-center gap-3 md:gap-6">
@@ -90,7 +89,6 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                             Cancelar
                         </button>
                     </div>
-                    {/* Resultados — por ahora vacío */}
                     <div className="flex-1 flex items-center justify-center">
                         <p className="text-[#506859] text-[14px]">Escribí para buscar...</p>
                     </div>
