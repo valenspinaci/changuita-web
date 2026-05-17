@@ -14,7 +14,6 @@ export default function Layout({ children }: LayoutProps) {
             <TopBar onMenuToggle={() => setSidebarOpen(prev => !prev)} />
             <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-            {/* Main content */}
             <main className="md:pl-[288px] pt-[64px] min-h-screen">
                 <div className="p-4 md:p-8">
                     {children}

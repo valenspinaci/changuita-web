@@ -6,10 +6,11 @@ import Login from './pages/Login'
 import Registro from './pages/Registro'
 import Dashboard from './pages/Dashboard'
 import Ventas from './pages/Ventas'
+import Gastos from './pages/Gastos'
 
 const DashboardPage = () => <Layout><Dashboard /></Layout>
 const VentasPage = () => <Layout><Ventas /></Layout>
-const Gastos = () => <Layout><div>Gastos</div></Layout>
+const GastosPage = () => <Layout><Gastos /></Layout>
 const Clientes = () => <Layout><div>Clientes</div></Layout>
 const Productos = () => <Layout><div>Productos</div></Layout>
 
@@ -38,7 +39,7 @@ function App() {
         <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/ventas" element={<ProtectedRoute><VentasPage /></ProtectedRoute>} />        
-        <Route path="/gastos" element={<ProtectedRoute><Gastos /></ProtectedRoute>} />
+        <Route path="/gastos" element={<ProtectedRoute><GastosPage /></ProtectedRoute>} />
         <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
         <Route path="/productos" element={<ProtectedRoute><Productos /></ProtectedRoute>} />
       </Routes>

@@ -47,14 +47,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         transition-transform duration-300 ease-in-out
         md:translate-x-0 md:pt-[90px]
         ${isOpen ? 'translate-x-0 pt-[64px]' : '-translate-x-full pt-[90px]'}
-      `}>
+        `}>
 
-                {/* Logo desktop — fijo arriba */}
+                {/* Logo desktop - fijo arriba */}
                 <div className="hidden md:flex items-center h-[64px] absolute top-0 left-0 right-0 px-6 bg-[#f8faf8]">
                     <img src={imgChanguita} alt="Changuita" className="h-[28px]" />
                 </div>
 
-                {/* Logo mobile — aparece cuando el drawer está abierto */}
+                {/* Logo mobile - aparece cuando el drawer está abierto */}
                 <div className="md:hidden flex items-center h-[64px] absolute top-0 left-0 right-0 px-6 border-b border-[rgba(236,238,236,0.5)] bg-[#f8faf8]">
                     <img src={imgChanguita} alt="Changuita" className="h-[28px]" />
                 </div>
