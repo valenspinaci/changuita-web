@@ -1,15 +1,15 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import React from 'react'
+import Layout from './components/layout/Layout'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
 
-// Páginas (las vamos a crear después)
-const Dashboard = () => <div>Dashboard</div>
-const Ventas = () => <div>Ventas</div>
-const Gastos = () => <div>Gastos</div>
-const Clientes = () => <div>Clientes</div>
-const Productos = () => <div>Productos</div>
+const Dashboard = () => <Layout><div>Dashboard</div></Layout>
+const Ventas = () => <Layout><div>Ventas</div></Layout>
+const Gastos = () => <Layout><div>Gastos</div></Layout>
+const Clientes = () => <Layout><div>Clientes</div></Layout>
+const Productos = () => <Layout><div>Productos</div></Layout>
 
 // Ruta protegida — redirige a login si no está autenticado
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
