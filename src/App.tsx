@@ -7,11 +7,12 @@ import Registro from './pages/Registro'
 import Dashboard from './pages/Dashboard'
 import Ventas from './pages/Ventas'
 import Gastos from './pages/Gastos'
+import Clientes from './pages/Clientes'
 
 const DashboardPage = () => <Layout><Dashboard /></Layout>
 const VentasPage = () => <Layout><Ventas /></Layout>
 const GastosPage = () => <Layout><Gastos /></Layout>
-const Clientes = () => <Layout><div>Clientes</div></Layout>
+const ClientesPage = () => <Layout><Clientes /></Layout>
 const Productos = () => <Layout><div>Productos</div></Layout>
 
 // Ruta protegida — redirige a login si no está autenticado
@@ -40,7 +41,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/ventas" element={<ProtectedRoute><VentasPage /></ProtectedRoute>} />        
         <Route path="/gastos" element={<ProtectedRoute><GastosPage /></ProtectedRoute>} />
-        <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
+        <Route path="/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
         <Route path="/productos" element={<ProtectedRoute><Productos /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
