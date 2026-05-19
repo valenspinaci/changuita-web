@@ -8,12 +8,13 @@ import Dashboard from './pages/Dashboard'
 import Ventas from './pages/Ventas'
 import Gastos from './pages/Gastos'
 import Clientes from './pages/Clientes'
+import Productos from './pages/Productos'
 
 const DashboardPage = () => <Layout><Dashboard /></Layout>
 const VentasPage = () => <Layout><Ventas /></Layout>
 const GastosPage = () => <Layout><Gastos /></Layout>
 const ClientesPage = () => <Layout><Clientes /></Layout>
-const Productos = () => <Layout><div>Productos</div></Layout>
+const ProductosPage = () => <Layout><Productos /></Layout>
 
 // Ruta protegida — redirige a login si no está autenticado
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -42,7 +43,7 @@ function App() {
         <Route path="/ventas" element={<ProtectedRoute><VentasPage /></ProtectedRoute>} />        
         <Route path="/gastos" element={<ProtectedRoute><GastosPage /></ProtectedRoute>} />
         <Route path="/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
-        <Route path="/productos" element={<ProtectedRoute><Productos /></ProtectedRoute>} />
+        <Route path="/productos" element={<ProtectedRoute><ProductosPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )
