@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import React from 'react'
 import Layout from './components/layout/Layout'
 import Login from './pages/Login'
@@ -9,22 +9,30 @@ import Ventas from './pages/Ventas'
 import Gastos from './pages/Gastos'
 import Clientes from './pages/Clientes'
 import Productos from './pages/Productos'
+import { EmprendimientoProvider, useEmprendimiento } from './context/EmprendimientoContext'
+import SeleccionEmprendimiento from './pages/SeleccionEmprendimiento'
 
-const DashboardPage = () => <Layout><Dashboard /></Layout>
-const VentasPage = () => <Layout><Ventas /></Layout>
-const GastosPage = () => <Layout><Gastos /></Layout>
-const ClientesPage = () => <Layout><Clientes /></Layout>
-const ProductosPage = () => <Layout><Productos /></Layout>
+// Wrapper interno que usa el contexto
+const ProtectedContent = () => {
+  const { emprendimientoActivo, loading } = useEmprendimiento()
+  if (loading) return <div>Cargando...</div>
+  if (!emprendimientoActivo) return <SeleccionEmprendimiento />
+  return <Outlet />
+}
 
-// Ruta protegida — redirige a login si no está autenticado
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+// Ruta protegida — monta el provider UNA sola vez
+const ProtectedRoute = () => {
   const { isAuthenticated, isLoading } = useAuth0()
   if (isLoading) return <div>Cargando...</div>
   if (!isAuthenticated) return <Navigate to="/login" />
-  return <>{children}</>
+  return (
+    <EmprendimientoProvider>
+      <ProtectedContent />
+    </EmprendimientoProvider>
+  )
 }
 
-// Ruta pública — redirige al dashboard si ya está autenticado
+// Ruta pública
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth0()
   if (isLoading) return <div>Cargando...</div>
@@ -38,12 +46,13 @@ function App() {
       <Routes>
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/registro" element={<PublicRoute><Registro /></PublicRoute>} />
-        <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/ventas" element={<ProtectedRoute><VentasPage /></ProtectedRoute>} />        
-        <Route path="/gastos" element={<ProtectedRoute><GastosPage /></ProtectedRoute>} />
-        <Route path="/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
-        <Route path="/productos" element={<ProtectedRoute><ProductosPage /></ProtectedRoute>} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/ventas" element={<Layout><Ventas /></Layout>} />
+          <Route path="/gastos" element={<Layout><Gastos /></Layout>} />
+          <Route path="/clientes" element={<Layout><Clientes /></Layout>} />
+          <Route path="/productos" element={<Layout><Productos /></Layout>} />
+        </Route>
       </Routes>
     </BrowserRouter>
   )
