@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
 
 type Periodo = 'hoy' | 'semana' | 'mes'
+
 
 const ventasRecientes = [
     { id: 1, producto: 'Yerba Mate Playadito 1kg', cliente: 'Particular', fecha: 'Hoy, 14:20', monto: '$3.200' },

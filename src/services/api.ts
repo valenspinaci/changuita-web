@@ -60,3 +60,9 @@ export const crearProducto = (emprendimientoId: number, data: unknown) =>
 // ── Pedidos ──────────────────────────────────────────────────
 export const getPedidos = (emprendimientoId: number) =>
     request('GET', `/emprendimientos/${emprendimientoId}/pedidos`)
+
+export const actualizarEstadoVenta = (emprendimientoId: number, ventaId: number, estado: string) =>
+    request('PATCH', `/emprendimientos/${emprendimientoId}/ventas/${ventaId}/estado`, { estado })
+
+export const eliminarVenta = (emprendimientoId: number, ventaId: number) =>
+    request('DELETE', `/emprendimientos/${emprendimientoId}/ventas/${ventaId}`)
