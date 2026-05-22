@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import ReactDOM from 'react-dom'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { getVentas, crearVenta, actualizarEstadoVenta, eliminarVenta } from '../services/api'
 
@@ -15,67 +14,63 @@ interface VentaAPI {
     cliente?: { nombre: string }
 }
 
-// Componente fila con swipe para mobile
+// Componente fila con swipe mobile y acciones desktop
 function FilaVenta({
     venta,
     index,
     onEliminar,
     eliminando,
+    onCambiarEstado,
+    actualizando,
     formatFecha,
     formatMonto,
     getBadgeEstado,
     getLabelEstado,
-    onAbrirMenu,
 }: {
     venta: VentaAPI
     index: number
     onEliminar: (id: number) => void
     eliminando: number | null
+    onCambiarEstado: (id: number, estado: string) => void
+    actualizando: boolean
     formatFecha: (f: string) => string
     formatMonto: (m: string) => string
     getBadgeEstado: (e: string) => string
     getLabelEstado: (e: string) => string
-    onAbrirMenu: (e: React.MouseEvent, id: number) => void
 }) {
     const [swipeX, setSwipeX] = useState(0)
-    const [swiping, setSwiping] = useState(false)
+    const [editandoEstado, setEditandoEstado] = useState(false)
     const startX = useRef(0)
     const THRESHOLD = 80
 
     const handleTouchStart = (e: React.TouchEvent) => {
         startX.current = e.touches[0].clientX
-        setSwiping(true)
     }
 
     const handleTouchMove = (e: React.TouchEvent) => {
         const diff = e.touches[0].clientX - startX.current
         if (diff < 0) setSwipeX(Math.max(diff, -THRESHOLD - 20))
+        else setSwipeX(Math.min(diff, 0))
     }
 
     const handleTouchEnd = () => {
-        setSwiping(false)
-        if (swipeX < -THRESHOLD / 2) {
-            setSwipeX(-THRESHOLD)
-        } else {
-            setSwipeX(0)
-        }
+        if (swipeX < -THRESHOLD / 2) setSwipeX(-THRESHOLD)
+        else setSwipeX(0)
     }
 
     return (
         <div className={`relative overflow-hidden ${index > 0 ? 'border-t border-[rgba(230,233,231,0.5)]' : ''}`}>
+
             {/* Botón eliminar detrás — solo mobile */}
             <div className="md:hidden absolute right-0 top-0 bottom-0 w-[80px] bg-[#ba1a1a] flex items-center justify-center">
-                <button
-                    onClick={() => onEliminar(venta.id)}
-                    disabled={eliminando === venta.id}
-                    className="flex flex-col items-center gap-1 text-white"
-                >
+                <button onClick={() => onEliminar(venta.id)} disabled={eliminando === venta.id}
+                    className="flex flex-col items-center gap-1 text-white">
                     <span className="text-[20px]">🗑️</span>
                     <span className="text-[10px] font-bold">Eliminar</span>
                 </button>
             </div>
 
-            {/* Contenido de la fila */}
+            {/* Fila */}
             <div
                 className="grid grid-cols-12 px-4 md:px-6 py-4 items-center bg-[#f2f4f2] transition-transform"
                 style={{ transform: `translateX(${swipeX}px)` }}
@@ -84,7 +79,7 @@ function FilaVenta({
                 onTouchEnd={handleTouchEnd}
             >
                 {/* Detalle */}
-                <div className="col-span-7 md:col-span-5 flex items-center gap-3">
+                <div className="col-span-7 md:col-span-4 flex items-center gap-3">
                     <div className="hidden md:flex w-10 h-10 bg-[#cee9d6] rounded-[8px] items-center justify-center text-[18px] shrink-0">🛒</div>
                     <div>
                         <p className="text-[#191c1b] text-[13px] md:text-[14px] font-bold leading-tight">
@@ -99,20 +94,47 @@ function FilaVenta({
                     <p className="text-[#191c1b] text-[13px] md:text-[14px] font-extrabold">{formatMonto(venta.total)}</p>
                 </div>
 
-                {/* Estado — solo desktop */}
-                <div className="hidden md:flex md:col-span-3 justify-center">
-                    <span className={`px-3 py-1 rounded-full text-[12px] font-bold ${getBadgeEstado(venta.estado)}`}>
-                        {getLabelEstado(venta.estado)}
-                    </span>
+                {/* Estado desktop — clickeable */}
+                <div className="hidden md:flex md:col-span-3 justify-center relative">
+                    <div className="relative">
+                        <button
+                            onClick={() => setEditandoEstado(!editandoEstado)}
+                            className={`px-3 py-1 rounded-full text-[12px] font-bold ${getBadgeEstado(venta.estado)}`}
+                        >
+                            {getLabelEstado(venta.estado)} ▾
+                        </button>
+                        {editandoEstado && (
+                            <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-white rounded-[12px] shadow-[0px_8px_24px_rgba(0,0,0,0.12)] z-50 min-w-[160px] overflow-hidden border border-[#eceeec]">
+                                {['COBRADA', 'PENDIENTE', 'CANCELADA'].map(estado => (
+                                    <button key={estado} disabled={actualizando || venta.estado === estado}
+                                        onClick={() => { onCambiarEstado(venta.id, estado); setEditandoEstado(false) }}
+                                        className={`w-full text-left px-4 py-2.5 text-[12px] font-bold transition-colors hover:bg-[#f8faf8] ${venta.estado === estado ? 'opacity-40 cursor-default' : ''}`}
+                                    >
+                                        <span className={`inline-block w-2 h-2 rounded-full mr-2 ${estado === 'COBRADA' ? 'bg-[#344c3e]' : estado === 'PENDIENTE' ? 'bg-[#856404]' : 'bg-[#7b2c33]'}`} />
+                                        {venta.estado === estado ? '✓ ' : ''}{getLabelEstado(estado)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Tres puntitos — solo desktop */}
-                <div className="hidden md:flex md:col-span-2 justify-end">
+                {/* Acciones desktop — lápiz y tacho */}
+                <div className="hidden md:flex md:col-span-3 justify-end gap-2">
                     <button
-                        onClick={(e) => onAbrirMenu(e, venta.id)}
-                        className="p-2 rounded-[8px] hover:bg-[#e6e9e7] transition-colors text-[#506859] font-extrabold text-[18px] leading-none"
+                        onClick={() => setEditandoEstado(!editandoEstado)}
+                        className="p-2 rounded-[8px] hover:bg-[#e6e9e7] transition-colors text-[#506859]"
+                        title="Editar estado"
                     >
-                        ···
+                        ✏️
+                    </button>
+                    <button
+                        onClick={() => onEliminar(venta.id)}
+                        disabled={eliminando === venta.id}
+                        className="p-2 rounded-[8px] hover:bg-[#ffdada] transition-colors text-[#ba1a1a] disabled:opacity-50"
+                        title="Eliminar venta"
+                    >
+                        🗑️
                     </button>
                 </div>
 
@@ -139,10 +161,6 @@ export default function Ventas() {
     const [cobrado, setCobrado] = useState(false)
     const [metodoPago, setMetodoPago] = useState<MetodoPago>('efectivo')
     const [guardando, setGuardando] = useState(false)
-
-    // Menú desktop
-    const [menuAbiertoId, setMenuAbiertoId] = useState<number | null>(null)
-    const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
     const [actualizando, setActualizando] = useState(false)
     const [eliminando, setEliminando] = useState<number | null>(null)
 
@@ -159,23 +177,7 @@ export default function Ventas() {
         }
     }
 
-    useEffect(() => {
-        cargarVentas()
-    }, [emprendimientoActivo])
-
-    useEffect(() => {
-        const handleClickOutside = () => setMenuAbiertoId(null)
-        if (menuAbiertoId !== null) document.addEventListener('click', handleClickOutside)
-        return () => document.removeEventListener('click', handleClickOutside)
-    }, [menuAbiertoId])
-
-    const handleAbrirMenu = (e: React.MouseEvent, ventaId: number) => {
-        e.stopPropagation()
-        if (menuAbiertoId === ventaId) { setMenuAbiertoId(null); return }
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-        setMenuPos({ top: rect.bottom + window.scrollY + 4, right: window.innerWidth - rect.right })
-        setMenuAbiertoId(ventaId)
-    }
+    useEffect(() => { cargarVentas() }, [emprendimientoActivo])
 
     const handleConfirmar = async () => {
         if (!emprendimientoActivo || !precio) return
@@ -202,7 +204,6 @@ export default function Ventas() {
             setActualizando(true)
             await actualizarEstadoVenta(emprendimientoActivo.id, ventaId, nuevoEstado)
             await cargarVentas()
-            setMenuAbiertoId(null)
         } catch (err: any) {
             alert(err.message || 'Error al actualizar estado')
         } finally {
@@ -217,7 +218,6 @@ export default function Ventas() {
             setEliminando(ventaId)
             await eliminarVenta(emprendimientoActivo.id, ventaId)
             await cargarVentas()
-            setMenuAbiertoId(null)
         } catch (err: any) {
             alert(err.message || 'Error al eliminar venta')
         } finally {
@@ -227,8 +227,7 @@ export default function Ventas() {
 
     const formatFecha = (fecha: string) => {
         const d = new Date(fecha)
-        const hoy = new Date()
-        const esHoy = d.toDateString() === hoy.toDateString()
+        const esHoy = d.toDateString() === new Date().toDateString()
         if (esHoy) return `Hoy, ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
         return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
     }
@@ -256,7 +255,6 @@ export default function Ventas() {
     const ventasHoy = ventas.filter(v => new Date(v.fecha).toDateString() === new Date().toDateString())
     const totalHoy = ventasHoy.reduce((acc, v) => acc + parseFloat(v.total), 0)
     const ticketPromedio = ventas.length > 0 ? ventas.reduce((acc, v) => acc + parseFloat(v.total), 0) / ventas.length : 0
-    const ventaActiva = ventas.find(v => v.id === menuAbiertoId)
 
     return (
         <div className="flex flex-col gap-8 md:gap-10">
@@ -281,13 +279,11 @@ export default function Ventas() {
                             <input type="text" value={producto} onChange={e => setProducto(e.target.value)} placeholder="Ej. Pan, Leche, Yerba..."
                                 className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full" />
                         </div>
-
                         <div className="flex flex-col gap-2">
                             <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Cliente</label>
                             <input type="text" value={cliente} onChange={e => setCliente(e.target.value)} placeholder="Ej. Juan Perez"
                                 className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full" />
                         </div>
-
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Cantidad</label>
@@ -350,7 +346,7 @@ export default function Ventas() {
                     <div className="bg-[#f2f4f2] rounded-[12px] overflow-hidden shadow-sm">
                         {/* Header */}
                         <div className="bg-[#e6e9e7] grid grid-cols-12 px-4 md:px-6 py-4">
-                            <div className="col-span-7 md:col-span-5">
+                            <div className="col-span-7 md:col-span-4">
                                 <span className="text-[#3f4941] text-[12px] font-bold tracking-[1.2px] uppercase">Detalle</span>
                             </div>
                             <div className="col-span-3 md:col-span-2 text-right">
@@ -359,8 +355,8 @@ export default function Ventas() {
                             <div className="hidden md:flex md:col-span-3 justify-center">
                                 <span className="text-[#3f4941] text-[12px] font-bold tracking-[1.2px] uppercase">Estado</span>
                             </div>
-                            <div className="hidden md:flex md:col-span-2 justify-end">
-                                <span className="text-[#3f4941] text-[12px] font-bold tracking-[1.2px] uppercase">Acción</span>
+                            <div className="hidden md:flex md:col-span-3 justify-end">
+                                <span className="text-[#3f4941] text-[12px] font-bold tracking-[1.2px] uppercase">Acciones</span>
                             </div>
                         </div>
 
@@ -382,11 +378,12 @@ export default function Ventas() {
                                     index={i}
                                     onEliminar={handleEliminar}
                                     eliminando={eliminando}
+                                    onCambiarEstado={handleActualizarEstado}
+                                    actualizando={actualizando}
                                     formatFecha={formatFecha}
                                     formatMonto={formatMonto}
                                     getBadgeEstado={getBadgeEstado}
                                     getLabelEstado={getLabelEstado}
-                                    onAbrirMenu={handleAbrirMenu}
                                 />
                             ))
                         )}
@@ -408,31 +405,6 @@ export default function Ventas() {
                     </div>
                 </div>
             </div>
-
-            {/* Dropdown portal desktop */}
-            {menuAbiertoId !== null && ventaActiva && ReactDOM.createPortal(
-                <div
-                    className="fixed bg-white rounded-[12px] shadow-[0px_8px_24px_rgba(0,0,0,0.15)] z-[9999] min-w-[180px] overflow-hidden border border-[#eceeec]"
-                    style={{ top: menuPos.top, right: menuPos.right }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="px-4 py-3 border-b border-[#eceeec]">
-                        <p className="text-[#6f7a71] text-[10px] font-bold tracking-[0.6px] uppercase mb-2">Cambiar estado</p>
-                        {['COBRADA', 'PENDIENTE', 'CANCELADA'].map(estado => (
-                            <button key={estado} disabled={actualizando || ventaActiva.estado === estado}
-                                onClick={() => handleActualizarEstado(ventaActiva.id, estado)}
-                                className={`w-full text-left px-3 py-2 rounded-[8px] text-[12px] font-bold mb-1 transition-colors ${ventaActiva.estado === estado ? getBadgeEstado(estado) + ' opacity-50 cursor-default' : getBadgeEstado(estado) + ' hover:opacity-80'}`}>
-                                {ventaActiva.estado === estado ? '✓ ' : ''}{getLabelEstado(estado)}
-                            </button>
-                        ))}
-                    </div>
-                    <button onClick={() => handleEliminar(ventaActiva.id)} disabled={eliminando === ventaActiva.id}
-                        className="w-full text-left px-4 py-3 text-[#ba1a1a] text-[13px] font-bold hover:bg-[#fff5f5] transition-colors flex items-center gap-2 disabled:opacity-50">
-                        🗑️ {eliminando === ventaActiva.id ? 'Eliminando...' : 'Eliminar venta'}
-                    </button>
-                </div>,
-                document.body
-            )}
         </div>
     )
 }
