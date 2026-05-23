@@ -25,6 +25,11 @@ export default function Dashboard() {
     const [periodo, setPeriodo] = useState<Periodo>('hoy')
     const navigate = useNavigate()
     const { user } = useAuth0()
+    const { getAccessTokenSilently } = useAuth0()
+
+    useEffect(() => {
+        getAccessTokenSilently().then(t => console.log('TOKEN:', t))
+    }, [])
 
     return (
         <div className="flex flex-col gap-8 md:gap-10">

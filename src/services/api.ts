@@ -66,3 +66,15 @@ export const actualizarEstadoVenta = (emprendimientoId: number, ventaId: number,
 
 export const eliminarVenta = (emprendimientoId: number, ventaId: number) =>
     request('DELETE', `/emprendimientos/${emprendimientoId}/ventas/${ventaId}`)
+
+export const getCategorias = (emprendimientoId: number) =>
+    request('GET', `/emprendimientos/${emprendimientoId}/categorias-gasto`)
+
+export const crearCategoria = (emprendimientoId: number, data: { nombre: string }) =>
+    request('POST', `/emprendimientos/${emprendimientoId}/categorias-gasto`, data)
+
+export const eliminarCategoria = (emprendimientoId: number, categoriaId: number) =>
+    request('DELETE', `/emprendimientos/${emprendimientoId}/categorias-gasto/${categoriaId}`)
+
+export const eliminarGasto = (emprendimientoId: number, gastoId: number) =>
+    request('DELETE', `/emprendimientos/${emprendimientoId}/gastos/${gastoId}`)
