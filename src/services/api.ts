@@ -54,8 +54,8 @@ export const crearCliente = (emprendimientoId: number, data: unknown) =>
 // ── Productos ─────────────────────────────────────────────────
 export const getProductos = (emprendimientoId: number) =>
     request('GET', `/emprendimientos/${emprendimientoId}/productos`)
-export const crearProducto = (emprendimientoId: number, data: unknown) =>
-    request('POST', `/emprendimientos/${emprendimientoId}/productos`, data)
+// Note: crearProducto is already declared above in the Productos section.
+// Duplicate declaration removed to avoid "cannot redeclare block-scoped variable 'crearProducto'" error.
 
 // ── Pedidos ──────────────────────────────────────────────────
 export const getPedidos = (emprendimientoId: number) =>
@@ -84,3 +84,21 @@ export const eliminarCliente = (emprendimientoId: number, clienteId: number) =>
 
 export const actualizarCliente = (emprendimientoId: number, clienteId: number, data: unknown) =>
     request('PUT', `/emprendimientos/${emprendimientoId}/clientes/${clienteId}`, data)
+
+export const crearProducto = (emprendimientoId: number, data: unknown) =>
+    request('POST', `/emprendimientos/${emprendimientoId}/productos`, data)
+
+export const actualizarProducto = (emprendimientoId: number, productoId: number, data: unknown) =>
+    request('PUT', `/emprendimientos/${emprendimientoId}/productos/${productoId}`, data)
+
+export const eliminarProducto = (emprendimientoId: number, productoId: number) =>
+    request('DELETE', `/emprendimientos/${emprendimientoId}/productos/${productoId}`)
+
+export const getCategoriasProducto = (emprendimientoId: number) =>
+    request('GET', `/emprendimientos/${emprendimientoId}/categorias-producto`)
+
+export const crearCategoriaProducto = (emprendimientoId: number, data: { nombre: string }) =>
+    request('POST', `/emprendimientos/${emprendimientoId}/categorias-producto`, data)
+
+export const eliminarCategoriaProducto = (emprendimientoId: number, categoriaId: number) =>
+    request('DELETE', `/emprendimientos/${emprendimientoId}/categorias-producto/${categoriaId}`)
