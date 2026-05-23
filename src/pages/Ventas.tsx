@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
-import { getVentas, crearVenta, actualizarEstadoVenta, eliminarVenta } from '../services/api'
+import { getVentas, crearVenta, actualizarEstadoVenta, eliminarVenta, getClientes, crearCliente } from '../services/api'
 
 type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia'
 
@@ -11,21 +11,17 @@ interface VentaAPI {
     fecha: string
     notas?: string
     detalles: any[]
-    cliente?: { nombre: string }
+    cliente?: { id: number; nombre: string }
 }
 
-// Componente fila con swipe mobile y acciones desktop
+interface ClienteAPI {
+    id: number
+    nombre: string
+    telefono?: string
+}
+
 function FilaVenta({
-    venta,
-    index,
-    onEliminar,
-    eliminando,
-    onCambiarEstado,
-    actualizando,
-    formatFecha,
-    formatMonto,
-    getBadgeEstado,
-    getLabelEstado,
+    venta, index, onEliminar, eliminando, onCambiarEstado, actualizando, formatFecha, formatMonto, getBadgeEstado, getLabelEstado,
 }: {
     venta: VentaAPI
     index: number
@@ -43,16 +39,12 @@ function FilaVenta({
     const startX = useRef(0)
     const THRESHOLD = 80
 
-    const handleTouchStart = (e: React.TouchEvent) => {
-        startX.current = e.touches[0].clientX
-    }
-
+    const handleTouchStart = (e: React.TouchEvent) => { startX.current = e.touches[0].clientX }
     const handleTouchMove = (e: React.TouchEvent) => {
         const diff = e.touches[0].clientX - startX.current
         if (diff < 0) setSwipeX(Math.max(diff, -THRESHOLD - 20))
         else setSwipeX(Math.min(diff, 0))
     }
-
     const handleTouchEnd = () => {
         if (swipeX < -THRESHOLD / 2) setSwipeX(-THRESHOLD)
         else setSwipeX(0)
@@ -60,8 +52,6 @@ function FilaVenta({
 
     return (
         <div className={`relative overflow-hidden ${index > 0 ? 'border-t border-[rgba(230,233,231,0.5)]' : ''}`}>
-
-            {/* Botón eliminar detrás — solo mobile */}
             <div className="md:hidden absolute right-0 top-0 bottom-0 w-[80px] bg-[#ba1a1a] flex items-center justify-center">
                 <button onClick={() => onEliminar(venta.id)} disabled={eliminando === venta.id}
                     className="flex flex-col items-center gap-1 text-white">
@@ -70,7 +60,6 @@ function FilaVenta({
                 </button>
             </div>
 
-            {/* Fila */}
             <div
                 className="grid grid-cols-12 px-4 md:px-6 py-4 items-center bg-[#f2f4f2] transition-transform"
                 style={{ transform: `translateX(${swipeX}px)` }}
@@ -78,29 +67,26 @@ function FilaVenta({
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
             >
-                {/* Detalle */}
                 <div className="col-span-7 md:col-span-4 flex items-center gap-3">
                     <div className="hidden md:flex w-10 h-10 bg-[#cee9d6] rounded-[8px] items-center justify-center text-[18px] shrink-0">🛒</div>
                     <div>
                         <p className="text-[#191c1b] text-[13px] md:text-[14px] font-bold leading-tight">
                             {venta.notas || `Venta #${venta.id}`}
                         </p>
-                        <p className="text-[#3f4941] text-[11px] md:text-[12px]">{formatFecha(venta.fecha)}</p>
+                        <p className="text-[#3f4941] text-[11px] md:text-[12px]">
+                            {venta.cliente ? `${venta.cliente.nombre} • ` : ''}{formatFecha(venta.fecha)}
+                        </p>
                     </div>
                 </div>
 
-                {/* Monto */}
                 <div className="col-span-3 md:col-span-2 text-right">
                     <p className="text-[#191c1b] text-[13px] md:text-[14px] font-extrabold">{formatMonto(venta.total)}</p>
                 </div>
 
-                {/* Estado desktop — clickeable */}
                 <div className="hidden md:flex md:col-span-3 justify-center relative">
                     <div className="relative">
-                        <button
-                            onClick={() => setEditandoEstado(!editandoEstado)}
-                            className={`px-3 py-1 rounded-full text-[12px] font-bold ${getBadgeEstado(venta.estado)}`}
-                        >
+                        <button onClick={() => setEditandoEstado(!editandoEstado)}
+                            className={`px-3 py-1 rounded-full text-[12px] font-bold ${getBadgeEstado(venta.estado)}`}>
                             {getLabelEstado(venta.estado)} ▾
                         </button>
                         {editandoEstado && (
@@ -108,8 +94,7 @@ function FilaVenta({
                                 {['COBRADA', 'PENDIENTE', 'CANCELADA'].map(estado => (
                                     <button key={estado} disabled={actualizando || venta.estado === estado}
                                         onClick={() => { onCambiarEstado(venta.id, estado); setEditandoEstado(false) }}
-                                        className={`w-full text-left px-4 py-2.5 text-[12px] font-bold transition-colors hover:bg-[#f8faf8] ${venta.estado === estado ? 'opacity-40 cursor-default' : ''}`}
-                                    >
+                                        className={`w-full text-left px-4 py-2.5 text-[12px] font-bold transition-colors hover:bg-[#f8faf8] ${venta.estado === estado ? 'opacity-40 cursor-default' : ''}`}>
                                         <span className={`inline-block w-2 h-2 rounded-full mr-2 ${estado === 'COBRADA' ? 'bg-[#344c3e]' : estado === 'PENDIENTE' ? 'bg-[#856404]' : 'bg-[#7b2c33]'}`} />
                                         {venta.estado === estado ? '✓ ' : ''}{getLabelEstado(estado)}
                                     </button>
@@ -119,26 +104,13 @@ function FilaVenta({
                     </div>
                 </div>
 
-                {/* Acciones desktop — lápiz y tacho */}
                 <div className="hidden md:flex md:col-span-3 justify-end gap-2">
-                    <button
-                        onClick={() => setEditandoEstado(!editandoEstado)}
-                        className="p-2 rounded-[8px] hover:bg-[#e6e9e7] transition-colors text-[#506859]"
-                        title="Editar estado"
-                    >
-                        ✏️
-                    </button>
-                    <button
-                        onClick={() => onEliminar(venta.id)}
-                        disabled={eliminando === venta.id}
-                        className="p-2 rounded-[8px] hover:bg-[#ffdada] transition-colors text-[#ba1a1a] disabled:opacity-50"
-                        title="Eliminar venta"
-                    >
-                        🗑️
-                    </button>
+                    <button onClick={() => setEditandoEstado(!editandoEstado)}
+                        className="p-2 rounded-[8px] hover:bg-[#e6e9e7] transition-colors text-[#506859]">✏️</button>
+                    <button onClick={() => onEliminar(venta.id)} disabled={eliminando === venta.id}
+                        className="p-2 rounded-[8px] hover:bg-[#ffdada] transition-colors text-[#ba1a1a] disabled:opacity-50">🗑️</button>
                 </div>
 
-                {/* Indicador swipe — solo mobile */}
                 <div className="col-span-2 md:hidden flex justify-end">
                     <span className="text-[#bec9bf] text-[18px]">‹</span>
                 </div>
@@ -150,26 +122,38 @@ function FilaVenta({
 export default function Ventas() {
     const { emprendimientoActivo } = useEmprendimiento()
     const [ventas, setVentas] = useState<VentaAPI[]>([])
+    const [clientes, setClientes] = useState<ClienteAPI[]>([])
     const [loadingVentas, setLoadingVentas] = useState(true)
     const [errorVentas, setErrorVentas] = useState('')
 
-    // Formulario
     const [producto, setProducto] = useState('')
-    const [cliente, setCliente] = useState('')
     const [cantidad, setCantidad] = useState('1')
     const [precio, setPrecio] = useState('')
     const [cobrado, setCobrado] = useState(false)
     const [metodoPago, setMetodoPago] = useState<MetodoPago>('efectivo')
     const [guardando, setGuardando] = useState(false)
+
+    const [clienteId, setClienteId] = useState<string>('sin-cliente')
+    const [mostrarNuevoCliente, setMostrarNuevoCliente] = useState(false)
+    const [nombreNuevoCliente, setNombreNuevoCliente] = useState('')
+    const [telefonoNuevoCliente, setTelefonoNuevoCliente] = useState('')
+    const [emailNuevoCliente, setEmailNuevoCliente] = useState('')
+    const [direccionNuevoCliente, setDireccionNuevoCliente] = useState('')
+    const [creandoCliente, setCreandoCliente] = useState(false)
+
     const [actualizando, setActualizando] = useState(false)
     const [eliminando, setEliminando] = useState<number | null>(null)
 
-    const cargarVentas = async () => {
+    const cargarDatos = async () => {
         if (!emprendimientoActivo) return
         try {
             setLoadingVentas(true)
-            const data = await getVentas(emprendimientoActivo.id)
-            setVentas(data)
+            const [ventasData, clientesData] = await Promise.all([
+                getVentas(emprendimientoActivo.id),
+                getClientes(emprendimientoActivo.id),
+            ])
+            setVentas(ventasData)
+            setClientes(clientesData)
         } catch (err: any) {
             setErrorVentas(err.message || 'Error al cargar ventas')
         } finally {
@@ -177,7 +161,29 @@ export default function Ventas() {
         }
     }
 
-    useEffect(() => { cargarVentas() }, [emprendimientoActivo])
+    useEffect(() => { cargarDatos() }, [emprendimientoActivo])
+
+    const handleCrearCliente = async () => {
+        if (!emprendimientoActivo || !nombreNuevoCliente.trim()) return
+        try {
+            setCreandoCliente(true)
+            const nuevo = await crearCliente(emprendimientoActivo.id, {
+                nombre: nombreNuevoCliente.trim(),
+                telefono: telefonoNuevoCliente.trim() || undefined,
+                email: emailNuevoCliente.trim() || undefined,
+                direccion: direccionNuevoCliente.trim() || undefined,
+            })
+            setClientes(prev => [...prev, nuevo])
+            setClienteId(String(nuevo.id))
+            setNombreNuevoCliente(''); setTelefonoNuevoCliente('')
+            setEmailNuevoCliente(''); setDireccionNuevoCliente('')
+            setMostrarNuevoCliente(false)
+        } catch (err: any) {
+            alert(err.message || 'Error al crear cliente')
+        } finally {
+            setCreandoCliente(false)
+        }
+    }
 
     const handleConfirmar = async () => {
         if (!emprendimientoActivo || !precio) return
@@ -187,10 +193,12 @@ export default function Ventas() {
                 total: parseFloat(precio) * parseInt(cantidad),
                 notas: producto,
                 estado: cobrado ? 'COBRADA' : 'PENDIENTE',
+                clienteId: clienteId !== 'sin-cliente' ? parseInt(clienteId) : undefined,
                 detalles: [],
             })
-            setProducto(''); setCliente(''); setCantidad('1'); setPrecio(''); setCobrado(false); setMetodoPago('efectivo')
-            await cargarVentas()
+            setProducto(''); setCantidad('1'); setPrecio(''); setCobrado(false)
+            setMetodoPago('efectivo'); setClienteId('sin-cliente')
+            await cargarDatos()
         } catch (err: any) {
             alert(err.message || 'Error al registrar venta')
         } finally {
@@ -203,7 +211,7 @@ export default function Ventas() {
         try {
             setActualizando(true)
             await actualizarEstadoVenta(emprendimientoActivo.id, ventaId, nuevoEstado)
-            await cargarVentas()
+            await cargarDatos()
         } catch (err: any) {
             alert(err.message || 'Error al actualizar estado')
         } finally {
@@ -217,7 +225,7 @@ export default function Ventas() {
         try {
             setEliminando(ventaId)
             await eliminarVenta(emprendimientoActivo.id, ventaId)
-            await cargarVentas()
+            await cargarDatos()
         } catch (err: any) {
             alert(err.message || 'Error al eliminar venta')
         } finally {
@@ -274,16 +282,69 @@ export default function Ventas() {
                     </div>
 
                     <div className="flex flex-col gap-5">
+
+                        {/* Producto */}
                         <div className="flex flex-col gap-2">
                             <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Producto o Concepto</label>
-                            <input type="text" value={producto} onChange={e => setProducto(e.target.value)} placeholder="Ej. Pan, Leche, Yerba..."
+                            <input type="text" value={producto} onChange={e => setProducto(e.target.value)}
+                                placeholder="Ej. Pan, Leche, Yerba..."
                                 className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full" />
                         </div>
+
+                        {/* Cliente */}
                         <div className="flex flex-col gap-2">
-                            <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Cliente</label>
-                            <input type="text" value={cliente} onChange={e => setCliente(e.target.value)} placeholder="Ej. Juan Perez"
-                                className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full" />
+                            <div className="flex items-center justify-between px-1">
+                                <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase">Cliente</label>
+                                <button type="button" onClick={() => setMostrarNuevoCliente(!mostrarNuevoCliente)}
+                                    className="text-[#006039] text-[11px] font-bold hover:underline">
+                                    + Nuevo cliente
+                                </button>
+                            </div>
+
+                            {/* Mini formulario nuevo cliente */}
+                            {mostrarNuevoCliente && (
+                                <div className="bg-[#f8faf8] rounded-[10px] p-4 flex flex-col gap-3 border border-[#cbe6d3]">
+                                    <p className="text-[#006039] text-[12px] font-bold">Nuevo cliente</p>
+                                    <input type="text" value={nombreNuevoCliente} onChange={e => setNombreNuevoCliente(e.target.value)}
+                                        placeholder="Nombre completo *"
+                                        className="bg-white rounded-[8px] px-3 py-2 text-[13px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full border border-[#eceeec]" />
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input type="text" value={telefonoNuevoCliente} onChange={e => setTelefonoNuevoCliente(e.target.value)}
+                                            placeholder="Teléfono"
+                                            className="bg-white rounded-[8px] px-3 py-2 text-[13px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full border border-[#eceeec]" />
+                                        <input type="email" value={emailNuevoCliente} onChange={e => setEmailNuevoCliente(e.target.value)}
+                                            placeholder="Email"
+                                            className="bg-white rounded-[8px] px-3 py-2 text-[13px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full border border-[#eceeec]" />
+                                    </div>
+                                    <input type="text" value={direccionNuevoCliente} onChange={e => setDireccionNuevoCliente(e.target.value)}
+                                        placeholder="Dirección (opcional)"
+                                        className="bg-white rounded-[8px] px-3 py-2 text-[13px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full border border-[#eceeec]" />
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={() => setMostrarNuevoCliente(false)}
+                                            className="flex-1 py-2 rounded-[8px] bg-[#eceeec] text-[#3f4941] text-[12px] font-bold">
+                                            Cancelar
+                                        </button>
+                                        <button type="button" onClick={handleCrearCliente}
+                                            disabled={creandoCliente || !nombreNuevoCliente.trim()}
+                                            className="flex-1 py-2 rounded-[8px] bg-[#006039] text-white text-[12px] font-bold disabled:opacity-50">
+                                            {creandoCliente ? '...' : 'Crear'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <select value={clienteId} onChange={e => setClienteId(e.target.value)}
+                                className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full appearance-none">
+                                <option value="sin-cliente">Sin cliente registrado</option>
+                                {clientes.map(c => (
+                                    <option key={c.id} value={String(c.id)}>
+                                        {c.nombre}{c.telefono ? ` • ${c.telefono}` : ''}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
+
+                        {/* Cantidad y Precio */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Cantidad</label>
@@ -300,7 +361,9 @@ export default function Ventas() {
                             </div>
                         </div>
 
-                        <div className={`flex items-center gap-3 p-4 rounded-[12px] cursor-pointer transition-colors ${cobrado ? 'bg-[#cbe6d3]' : 'bg-[#f2f4f2]'}`} onClick={() => setCobrado(!cobrado)}>
+                        {/* Cobrado */}
+                        <div className={`flex items-center gap-3 p-4 rounded-[12px] cursor-pointer transition-colors ${cobrado ? 'bg-[#cbe6d3]' : 'bg-[#f2f4f2]'}`}
+                            onClick={() => setCobrado(!cobrado)}>
                             <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-colors shrink-0 ${cobrado ? 'bg-[#006039] border-[#006039]' : 'border-[#bec9bf] bg-white'}`}>
                                 {cobrado && <span className="text-white text-[12px] font-bold">✓</span>}
                             </div>
@@ -313,7 +376,8 @@ export default function Ventas() {
                                 <div className="flex gap-2">
                                     {(['efectivo', 'tarjeta', 'transferencia'] as MetodoPago[]).map((m) => (
                                         <button key={m} onClick={() => setMetodoPago(m)}
-                                            className={`flex-1 py-3 rounded-[8px] text-[12px] font-bold capitalize transition-colors border-2 ${metodoPago === m ? 'bg-[#cbe6d3] border-[#006039] text-[#506859]' : 'bg-[#eceeec] border-transparent text-[#3f4941]'}`}>
+                                            className={`flex-1 py-3 rounded-[8px] text-[12px] font-bold capitalize transition-colors border-2 ${metodoPago === m ? 'bg-[#cbe6d3] border-[#006039] text-[#506859]' : 'bg-[#eceeec] border-transparent text-[#3f4941]'
+                                                }`}>
                                             {m.charAt(0).toUpperCase() + m.slice(1)}
                                         </button>
                                     ))}
@@ -325,7 +389,9 @@ export default function Ventas() {
                     {precio && (
                         <div className="bg-[#f2f4f2] rounded-[12px] px-5 py-4 flex items-center justify-between">
                             <span className="text-[#3f4941] text-[14px] font-medium">Total</span>
-                            <span className="text-[#006039] text-[20px] font-extrabold">${(parseFloat(precio) * parseInt(cantidad || '1')).toLocaleString('es-AR')}</span>
+                            <span className="text-[#006039] text-[20px] font-extrabold">
+                                ${(parseFloat(precio) * parseInt(cantidad || '1')).toLocaleString('es-AR')}
+                            </span>
                         </div>
                     )}
 
@@ -344,7 +410,6 @@ export default function Ventas() {
                     </div>
 
                     <div className="bg-[#f2f4f2] rounded-[12px] overflow-hidden shadow-sm">
-                        {/* Header */}
                         <div className="bg-[#e6e9e7] grid grid-cols-12 px-4 md:px-6 py-4">
                             <div className="col-span-7 md:col-span-4">
                                 <span className="text-[#3f4941] text-[12px] font-bold tracking-[1.2px] uppercase">Detalle</span>
@@ -372,24 +437,15 @@ export default function Ventas() {
                             </div>
                         ) : (
                             ventas.map((venta, i) => (
-                                <FilaVenta
-                                    key={venta.id}
-                                    venta={venta}
-                                    index={i}
-                                    onEliminar={handleEliminar}
-                                    eliminando={eliminando}
-                                    onCambiarEstado={handleActualizarEstado}
-                                    actualizando={actualizando}
-                                    formatFecha={formatFecha}
-                                    formatMonto={formatMonto}
-                                    getBadgeEstado={getBadgeEstado}
-                                    getLabelEstado={getLabelEstado}
-                                />
+                                <FilaVenta key={venta.id} venta={venta} index={i}
+                                    onEliminar={handleEliminar} eliminando={eliminando}
+                                    onCambiarEstado={handleActualizarEstado} actualizando={actualizando}
+                                    formatFecha={formatFecha} formatMonto={formatMonto}
+                                    getBadgeEstado={getBadgeEstado} getLabelEstado={getLabelEstado} />
                             ))
                         )}
                     </div>
 
-                    {/* Stats */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-[#eceeec] rounded-[12px] p-6 flex flex-col justify-between h-[140px]">
                             <p className="text-[#3f4941] text-[12px] font-bold tracking-[1.2px] uppercase">Ventas Hoy</p>
@@ -400,7 +456,9 @@ export default function Ventas() {
                         </div>
                         <div className="bg-[#eceeec] rounded-[12px] p-6 flex flex-col justify-between h-[140px]">
                             <p className="text-[#3f4941] text-[12px] font-bold tracking-[1.2px] uppercase">Ticket Promedio</p>
-                            <p className="text-[#191c1b] text-[28px] font-extrabold">${ticketPromedio.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</p>
+                            <p className="text-[#191c1b] text-[28px] font-extrabold">
+                                ${ticketPromedio.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                            </p>
                         </div>
                     </div>
                 </div>

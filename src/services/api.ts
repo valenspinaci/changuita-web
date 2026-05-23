@@ -78,3 +78,9 @@ export const eliminarCategoria = (emprendimientoId: number, categoriaId: number)
 
 export const eliminarGasto = (emprendimientoId: number, gastoId: number) =>
     request('DELETE', `/emprendimientos/${emprendimientoId}/gastos/${gastoId}`)
+
+export const eliminarCliente = (emprendimientoId: number, clienteId: number) =>
+    request('DELETE', `/emprendimientos/${emprendimientoId}/clientes/${clienteId}`)
+
+export const actualizarCliente = (emprendimientoId: number, clienteId: number, data: unknown) =>
+    request('PUT', `/emprendimientos/${emprendimientoId}/clientes/${clienteId}`, data)
