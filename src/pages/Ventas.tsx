@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import ReactDOM from 'react-dom'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
-import { getVentas, crearVenta, actualizarEstadoVenta, eliminarVenta, getClientes, crearCliente } from '../services/api'
+import { getVentas, crearVenta, actualizarEstadoVenta, eliminarVenta, getClientes, crearCliente, crearPedido } from '../services/api'
 
 type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia'
 
@@ -36,8 +37,9 @@ function FilaVenta({
 }) {
     const [swipeX, setSwipeX] = useState(0)
     const [editandoEstado, setEditandoEstado] = useState(false)
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
     const startX = useRef(0)
-    const THRESHOLD = 80
+    const THRESHOLD = 160
 
     const handleTouchStart = (e: React.TouchEvent) => { startX.current = e.touches[0].clientX }
     const handleTouchMove = (e: React.TouchEvent) => {
@@ -50,14 +52,53 @@ function FilaVenta({
         else setSwipeX(0)
     }
 
+    const handleAbrirMenu = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+        setMenuPos({
+            top: rect.bottom + window.scrollY + 4,
+            left: rect.left + window.scrollX,
+        })
+        setEditandoEstado(prev => !prev)
+    }
+
+    // Cerrar al click fuera
+    useEffect(() => {
+        const handleClickOutside = () => setEditandoEstado(false)
+        if (editandoEstado) document.addEventListener('click', handleClickOutside)
+        return () => document.removeEventListener('click', handleClickOutside)
+    }, [editandoEstado])
+
     return (
         <div className={`relative overflow-hidden ${index > 0 ? 'border-t border-[rgba(230,233,231,0.5)]' : ''}`}>
-            <div className="md:hidden absolute right-0 top-0 bottom-0 w-[80px] bg-[#ba1a1a] flex items-center justify-center">
-                <button onClick={() => onEliminar(venta.id)} disabled={eliminando === venta.id}
-                    className="flex flex-col items-center gap-1 text-white">
-                    <span className="text-[20px]">🗑️</span>
-                    <span className="text-[10px] font-bold">Eliminar</span>
-                </button>
+
+            {/* Botones detrás — mobile */}
+            <div className="md:hidden absolute right-0 top-0 bottom-0 flex">
+                {/* Editar estado — amarillo */}
+                <div className="w-[80px] bg-[#856404] flex items-center justify-center">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setMenuPos({
+                                top: window.innerHeight / 2 - 80,
+                                left: window.innerWidth / 2 - 90,
+                            })
+                            setEditandoEstado(true)
+                            setSwipeX(0)
+                        }}
+                        className="flex flex-col items-center gap-1 text-white">
+                        <span className="text-[20px]">✏️</span>
+                        <span className="text-[10px] font-bold">Estado</span>
+                    </button>
+                </div>
+                {/* Eliminar — rojo */}
+                <div className="w-[80px] bg-[#ba1a1a] flex items-center justify-center">
+                    <button onClick={() => onEliminar(venta.id)} disabled={eliminando === venta.id}
+                        className="flex flex-col items-center gap-1 text-white">
+                        <span className="text-[20px]">🗑️</span>
+                        <span className="text-[10px] font-bold">Eliminar</span>
+                    </button>
+                </div>
             </div>
 
             <div
@@ -67,6 +108,7 @@ function FilaVenta({
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
             >
+                {/* Detalle */}
                 <div className="col-span-7 md:col-span-4 flex items-center gap-3">
                     <div className="hidden md:flex w-10 h-10 bg-[#cee9d6] rounded-[8px] items-center justify-center text-[18px] shrink-0">🛒</div>
                     <div>
@@ -79,42 +121,54 @@ function FilaVenta({
                     </div>
                 </div>
 
+                {/* Monto */}
                 <div className="col-span-3 md:col-span-2 text-right">
                     <p className="text-[#191c1b] text-[13px] md:text-[14px] font-extrabold">{formatMonto(venta.total)}</p>
                 </div>
 
-                <div className="hidden md:flex md:col-span-3 justify-center relative">
-                    <div className="relative">
-                        <button onClick={() => setEditandoEstado(!editandoEstado)}
-                            className={`px-3 py-1 rounded-full text-[12px] font-bold ${getBadgeEstado(venta.estado)}`}>
-                            {getLabelEstado(venta.estado)} ▾
-                        </button>
-                        {editandoEstado && (
-                            <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-white rounded-[12px] shadow-[0px_8px_24px_rgba(0,0,0,0.12)] z-50 min-w-[160px] overflow-hidden border border-[#eceeec]">
-                                {['COBRADA', 'PENDIENTE', 'CANCELADA'].map(estado => (
-                                    <button key={estado} disabled={actualizando || venta.estado === estado}
-                                        onClick={() => { onCambiarEstado(venta.id, estado); setEditandoEstado(false) }}
-                                        className={`w-full text-left px-4 py-2.5 text-[12px] font-bold transition-colors hover:bg-[#f8faf8] ${venta.estado === estado ? 'opacity-40 cursor-default' : ''}`}>
-                                        <span className={`inline-block w-2 h-2 rounded-full mr-2 ${estado === 'COBRADA' ? 'bg-[#344c3e]' : estado === 'PENDIENTE' ? 'bg-[#856404]' : 'bg-[#7b2c33]'}`} />
-                                        {venta.estado === estado ? '✓ ' : ''}{getLabelEstado(estado)}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                {/* Estado badge — desktop */}
+                <div className="hidden md:flex md:col-span-3 justify-center">
+                    <button onClick={handleAbrirMenu}
+                        className={`px-3 py-1 rounded-full text-[12px] font-bold ${getBadgeEstado(venta.estado)}`}>
+                        {getLabelEstado(venta.estado)} ▾
+                    </button>
                 </div>
 
+                {/* Acciones desktop — solo tacho */}
                 <div className="hidden md:flex md:col-span-3 justify-end gap-2">
-                    <button onClick={() => setEditandoEstado(!editandoEstado)}
-                        className="p-2 rounded-[8px] hover:bg-[#e6e9e7] transition-colors text-[#506859]">✏️</button>
                     <button onClick={() => onEliminar(venta.id)} disabled={eliminando === venta.id}
                         className="p-2 rounded-[8px] hover:bg-[#ffdada] transition-colors text-[#ba1a1a] disabled:opacity-50">🗑️</button>
                 </div>
 
+                {/* Indicador swipe mobile */}
                 <div className="col-span-2 md:hidden flex justify-end">
                     <span className="text-[#bec9bf] text-[18px]">‹</span>
                 </div>
             </div>
+
+            {/* Dropdown via portal */}
+            {editandoEstado && ReactDOM.createPortal(
+                <div
+                    className="fixed bg-white rounded-[12px] shadow-[0px_8px_24px_rgba(0,0,0,0.15)] z-[9999] min-w-[180px] overflow-hidden border border-[#eceeec]"
+                    style={{ top: menuPos.top, left: menuPos.left }}
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="px-4 py-3">
+                        <p className="text-[#6f7a71] text-[10px] font-bold tracking-[0.6px] uppercase mb-2">Cambiar estado</p>
+                        {['COBRADA', 'PENDIENTE', 'CANCELADA'].map(estado => (
+                            <button key={estado} disabled={actualizando || venta.estado === estado}
+                                onClick={() => { onCambiarEstado(venta.id, estado); setEditandoEstado(false) }}
+                                className={`w-full text-left px-3 py-2 rounded-[8px] text-[12px] font-bold mb-1 transition-colors ${venta.estado === estado
+                                        ? getBadgeEstado(estado) + ' opacity-50 cursor-default'
+                                        : getBadgeEstado(estado) + ' hover:opacity-80'
+                                    }`}>
+                                {venta.estado === estado ? '✓ ' : ''}{getLabelEstado(estado)}
+                            </button>
+                        ))}
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     )
 }
@@ -130,6 +184,7 @@ export default function Ventas() {
     const [cantidad, setCantidad] = useState('1')
     const [precio, setPrecio] = useState('')
     const [cobrado, setCobrado] = useState(false)
+    const [requierePreparacion, setRequierePreparacion] = useState(false)
     const [metodoPago, setMetodoPago] = useState<MetodoPago>('efectivo')
     const [guardando, setGuardando] = useState(false)
 
@@ -189,16 +244,32 @@ export default function Ventas() {
         if (!emprendimientoActivo || !precio) return
         try {
             setGuardando(true)
+            const total = parseFloat(precio) * parseInt(cantidad)
+            const cIdNum = clienteId !== 'sin-cliente' ? parseInt(clienteId) : undefined
+
             await crearVenta(emprendimientoActivo.id, {
-                total: parseFloat(precio) * parseInt(cantidad),
+                total,
                 notas: producto,
                 estado: cobrado ? 'COBRADA' : 'PENDIENTE',
-                clienteId: clienteId !== 'sin-cliente' ? parseInt(clienteId) : undefined,
+                clienteId: cIdNum,
                 detalles: [],
             })
+
+            if (requierePreparacion) {
+                await crearPedido(emprendimientoActivo.id, {
+                    clienteId: cIdNum,
+                    notas: producto ? `Preparación: ${producto}` : 'Pedido de preparación',
+                    detalles: [],
+                })
+            }
+
             setProducto(''); setCantidad('1'); setPrecio(''); setCobrado(false)
-            setMetodoPago('efectivo'); setClienteId('sin-cliente')
+            setRequierePreparacion(false); setMetodoPago('efectivo'); setClienteId('sin-cliente')
             await cargarDatos()
+
+            if (requierePreparacion) {
+                alert('✅ Venta registrada y pedido creado en la sección Pedidos.')
+            }
         } catch (err: any) {
             alert(err.message || 'Error al registrar venta')
         } finally {
@@ -266,7 +337,6 @@ export default function Ventas() {
 
     return (
         <div className="flex flex-col gap-8 md:gap-10">
-
             <div className="flex flex-col gap-1">
                 <h1 className="text-[#191c1b] text-[28px] md:text-[30px] font-extrabold tracking-[-0.75px] leading-tight">Ventas</h1>
                 <p className="text-[#3f4941] text-[16px] font-medium">Registrá los ingresos de hoy en tu emprendimiento.</p>
@@ -282,26 +352,19 @@ export default function Ventas() {
                     </div>
 
                     <div className="flex flex-col gap-5">
-
-                        {/* Producto */}
                         <div className="flex flex-col gap-2">
                             <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Producto o Concepto</label>
-                            <input type="text" value={producto} onChange={e => setProducto(e.target.value)}
-                                placeholder="Ej. Pan, Leche, Yerba..."
+                            <input type="text" value={producto} onChange={e => setProducto(e.target.value)} placeholder="Ej. Pan, Leche, Yerba..."
                                 className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full" />
                         </div>
 
-                        {/* Cliente */}
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between px-1">
                                 <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase">Cliente</label>
                                 <button type="button" onClick={() => setMostrarNuevoCliente(!mostrarNuevoCliente)}
-                                    className="text-[#006039] text-[11px] font-bold hover:underline">
-                                    + Nuevo cliente
-                                </button>
+                                    className="text-[#006039] text-[11px] font-bold hover:underline">+ Nuevo cliente</button>
                             </div>
 
-                            {/* Mini formulario nuevo cliente */}
                             {mostrarNuevoCliente && (
                                 <div className="bg-[#f8faf8] rounded-[10px] p-4 flex flex-col gap-3 border border-[#cbe6d3]">
                                     <p className="text-[#006039] text-[12px] font-bold">Nuevo cliente</p>
@@ -321,11 +384,8 @@ export default function Ventas() {
                                         className="bg-white rounded-[8px] px-3 py-2 text-[13px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full border border-[#eceeec]" />
                                     <div className="flex gap-2">
                                         <button type="button" onClick={() => setMostrarNuevoCliente(false)}
-                                            className="flex-1 py-2 rounded-[8px] bg-[#eceeec] text-[#3f4941] text-[12px] font-bold">
-                                            Cancelar
-                                        </button>
-                                        <button type="button" onClick={handleCrearCliente}
-                                            disabled={creandoCliente || !nombreNuevoCliente.trim()}
+                                            className="flex-1 py-2 rounded-[8px] bg-[#eceeec] text-[#3f4941] text-[12px] font-bold">Cancelar</button>
+                                        <button type="button" onClick={handleCrearCliente} disabled={creandoCliente || !nombreNuevoCliente.trim()}
                                             className="flex-1 py-2 rounded-[8px] bg-[#006039] text-white text-[12px] font-bold disabled:opacity-50">
                                             {creandoCliente ? '...' : 'Crear'}
                                         </button>
@@ -337,14 +397,11 @@ export default function Ventas() {
                                 className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full appearance-none">
                                 <option value="sin-cliente">Sin cliente registrado</option>
                                 {clientes.map(c => (
-                                    <option key={c.id} value={String(c.id)}>
-                                        {c.nombre}{c.telefono ? ` • ${c.telefono}` : ''}
-                                    </option>
+                                    <option key={c.id} value={String(c.id)}>{c.nombre}{c.telefono ? ` • ${c.telefono}` : ''}</option>
                                 ))}
                             </select>
                         </div>
 
-                        {/* Cantidad y Precio */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Cantidad</label>
@@ -368,6 +425,22 @@ export default function Ventas() {
                                 {cobrado && <span className="text-white text-[12px] font-bold">✓</span>}
                             </div>
                             <span className={`text-[14px] font-bold ${cobrado ? 'text-[#006039]' : 'text-[#3f4941]'}`}>Ya fue cobrada</span>
+                        </div>
+
+                        {/* Requiere preparación */}
+                        <div className={`flex items-center gap-3 p-4 rounded-[12px] cursor-pointer transition-colors ${requierePreparacion ? 'bg-[#fff3cd]' : 'bg-[#f2f4f2]'}`}
+                            onClick={() => setRequierePreparacion(!requierePreparacion)}>
+                            <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-colors shrink-0 ${requierePreparacion ? 'bg-[#856404] border-[#856404]' : 'border-[#bec9bf] bg-white'}`}>
+                                {requierePreparacion && <span className="text-white text-[12px] font-bold">✓</span>}
+                            </div>
+                            <div>
+                                <span className={`text-[14px] font-bold ${requierePreparacion ? 'text-[#856404]' : 'text-[#3f4941]'}`}>
+                                    Requiere preparación
+                                </span>
+                                {requierePreparacion && (
+                                    <p className="text-[#856404] text-[11px] mt-0.5">Se creará un pedido en la sección Pedidos</p>
+                                )}
+                            </div>
                         </div>
 
                         {cobrado && (
@@ -397,8 +470,8 @@ export default function Ventas() {
 
                     <button onClick={handleConfirmar} disabled={guardando || !precio}
                         className="w-full py-5 rounded-[8px] text-white text-[18px] font-extrabold shadow-[0px_10px_15px_-3px_rgba(0,96,57,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ background: 'linear-gradient(137deg, #006039 0%, #1a7a4d 100%)' }}>
-                        {guardando ? 'Registrando...' : cobrado ? 'Confirmar Venta ✓' : 'Registrar como Pendiente'}
+                        style={{ background: requierePreparacion ? 'linear-gradient(137deg, #856404 0%, #a07a10 100%)' : 'linear-gradient(137deg, #006039 0%, #1a7a4d 100%)' }}>
+                        {guardando ? 'Registrando...' : requierePreparacion ? '📋 Confirmar + Crear Pedido' : cobrado ? 'Confirmar Venta ✓' : 'Registrar como Pendiente'}
                     </button>
                 </div>
 
@@ -406,7 +479,7 @@ export default function Ventas() {
                 <div className="md:col-span-7 flex flex-col gap-6">
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-[#191c1b] text-[20px] font-bold">Historial de ventas</h2>
-                        <p className="text-[#6f7a71] text-[12px] md:hidden">← Deslizá para eliminar</p>
+                        <p className="text-[#6f7a71] text-[12px] md:hidden">← Deslizá para editar o eliminar</p>
                     </div>
 
                     <div className="bg-[#f2f4f2] rounded-[12px] overflow-hidden shadow-sm">

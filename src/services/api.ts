@@ -102,3 +102,15 @@ export const crearCategoriaProducto = (emprendimientoId: number, data: { nombre:
 
 export const eliminarCategoriaProducto = (emprendimientoId: number, categoriaId: number) =>
     request('DELETE', `/emprendimientos/${emprendimientoId}/categorias-producto/${categoriaId}`)
+
+export const crearPedido = (emprendimientoId: number, data: unknown) =>
+    request('POST', `/emprendimientos/${emprendimientoId}/pedidos`, data)
+
+export const actualizarEstadoPedido = (emprendimientoId: number, pedidoId: number, estado: string) =>
+    request('PATCH', `/emprendimientos/${emprendimientoId}/pedidos/${pedidoId}/estado`, { estado })
+
+export const actualizarPedido = (emprendimientoId: number, pedidoId: number, data: unknown) =>
+    request('PUT', `/emprendimientos/${emprendimientoId}/pedidos/${pedidoId}`, data)
+
+export const eliminarPedido = (emprendimientoId: number, pedidoId: number) =>
+    request('DELETE', `/emprendimientos/${emprendimientoId}/pedidos/${pedidoId}`)

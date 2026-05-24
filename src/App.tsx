@@ -11,6 +11,7 @@ import Clientes from './pages/Clientes'
 import Productos from './pages/Productos'
 import { EmprendimientoProvider, useEmprendimiento } from './context/EmprendimientoContext'
 import SeleccionEmprendimiento from './pages/SeleccionEmprendimiento'
+import Pedidos from './pages/Pedidos'
 
 // Wrapper interno que usa el contexto
 const ProtectedContent = () => {
@@ -52,6 +53,7 @@ function App() {
           <Route path="/gastos" element={<Layout><Gastos /></Layout>} />
           <Route path="/clientes" element={<Layout><Clientes /></Layout>} />
           <Route path="/productos" element={<Layout><Productos /></Layout>} />
+          <Route path="/pedidos" element={<Layout><Pedidos /></Layout>} />
         </Route>
       </Routes>
     </BrowserRouter>
