@@ -114,3 +114,6 @@ export const actualizarPedido = (emprendimientoId: number, pedidoId: number, dat
 
 export const eliminarPedido = (emprendimientoId: number, pedidoId: number) =>
     request('DELETE', `/emprendimientos/${emprendimientoId}/pedidos/${pedidoId}`)
+
+export const descontarStock = (emprendimientoId: number, productoId: number, cantidad: number) =>
+  request('PATCH', `/emprendimientos/${emprendimientoId}/productos/${productoId}/stock`, { cantidad })

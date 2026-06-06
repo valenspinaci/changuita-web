@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
+import { useNavigate } from 'react-router-dom'
 import { ReactComponent as IconBusqueda } from '../../assets/icons/busqueda.svg'
 
 interface TopBarProps {
@@ -8,6 +9,7 @@ interface TopBarProps {
 
 export default function TopBar({ onMenuToggle }: TopBarProps) {
     const { user, logout } = useAuth0()
+    const navigate = useNavigate()
     const [searchOpen, setSearchOpen] = useState(false)
 
     return (
@@ -24,7 +26,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                     </svg>
                 </button>
 
-                {/* Espaciador — empuja el contenido a la derecha en mobile */}
+                {/* Espaciador */}
                 <div className="flex-1 md:flex-none" />
 
                 {/* Right */}
@@ -57,11 +59,11 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                             </svg>
                         </button>
 
-                        {/* Avatar */}
+                        {/* Avatar — va al perfil */}
                         <button
-                            onClick={() => logout({ logoutParams: { returnTo: window.location.origin + '/login' } })}
+                            onClick={() => navigate('/perfil')}
                             className="w-9 h-9 rounded-full bg-[#006039] flex items-center justify-center text-white text-[14px] font-bold hover:bg-[#1a7a4d] transition-colors"
-                            title="Cerrar sesión"
+                            title="Mi perfil"
                         >
                             {user?.name?.charAt(0).toUpperCase() || 'U'}
                         </button>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
-import { getVentas, crearVenta, actualizarEstadoVenta, eliminarVenta, getClientes, crearCliente, crearPedido } from '../services/api'
+import { getVentas, crearVenta, actualizarEstadoVenta, eliminarVenta, getClientes, crearCliente, crearPedido, getProductos, descontarStock } from '../services/api'
 
 type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia'
+type ModoProducto = 'stock' | 'libre'
 
 interface VentaAPI {
     id: number
@@ -19,6 +20,14 @@ interface ClienteAPI {
     id: number
     nombre: string
     telefono?: string
+}
+
+interface ProductoAPI {
+    id: number
+    nombre: string
+    precio: string
+    stockTotal: number
+    categoria?: { nombre: string }
 }
 
 function FilaVenta({
@@ -55,14 +64,10 @@ function FilaVenta({
     const handleAbrirMenu = (e: React.MouseEvent) => {
         e.stopPropagation()
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-        setMenuPos({
-            top: rect.bottom + window.scrollY + 4,
-            left: rect.left + window.scrollX,
-        })
+        setMenuPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX })
         setEditandoEstado(prev => !prev)
     }
 
-    // Cerrar al click fuera
     useEffect(() => {
         const handleClickOutside = () => setEditandoEstado(false)
         if (editandoEstado) document.addEventListener('click', handleClickOutside)
@@ -71,27 +76,18 @@ function FilaVenta({
 
     return (
         <div className={`relative overflow-hidden ${index > 0 ? 'border-t border-[rgba(230,233,231,0.5)]' : ''}`}>
-
-            {/* Botones detrás — mobile */}
             <div className="md:hidden absolute right-0 top-0 bottom-0 flex">
-                {/* Editar estado — amarillo */}
                 <div className="w-[80px] bg-[#856404] flex items-center justify-center">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            setMenuPos({
-                                top: window.innerHeight / 2 - 80,
-                                left: window.innerWidth / 2 - 90,
-                            })
-                            setEditandoEstado(true)
-                            setSwipeX(0)
-                        }}
-                        className="flex flex-col items-center gap-1 text-white">
+                    <button onClick={(e) => {
+                        e.stopPropagation()
+                        setMenuPos({ top: window.innerHeight / 2 - 80, left: window.innerWidth / 2 - 90 })
+                        setEditandoEstado(true)
+                        setSwipeX(0)
+                    }} className="flex flex-col items-center gap-1 text-white">
                         <span className="text-[20px]">✏️</span>
                         <span className="text-[10px] font-bold">Estado</span>
                     </button>
                 </div>
-                {/* Eliminar — rojo */}
                 <div className="w-[80px] bg-[#ba1a1a] flex items-center justify-center">
                     <button onClick={() => onEliminar(venta.id)} disabled={eliminando === venta.id}
                         className="flex flex-col items-center gap-1 text-white">
@@ -101,14 +97,9 @@ function FilaVenta({
                 </div>
             </div>
 
-            <div
-                className="grid grid-cols-12 px-4 md:px-6 py-4 items-center bg-[#f2f4f2] transition-transform"
+            <div className="grid grid-cols-12 px-4 md:px-6 py-4 items-center bg-[#f2f4f2] transition-transform"
                 style={{ transform: `translateX(${swipeX}px)` }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-            >
-                {/* Detalle */}
+                onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
                 <div className="col-span-7 md:col-span-4 flex items-center gap-3">
                     <div className="hidden md:flex w-10 h-10 bg-[#cee9d6] rounded-[8px] items-center justify-center text-[18px] shrink-0">🛒</div>
                     <div>
@@ -120,48 +111,34 @@ function FilaVenta({
                         </p>
                     </div>
                 </div>
-
-                {/* Monto */}
                 <div className="col-span-3 md:col-span-2 text-right">
                     <p className="text-[#191c1b] text-[13px] md:text-[14px] font-extrabold">{formatMonto(venta.total)}</p>
                 </div>
-
-                {/* Estado badge — desktop */}
                 <div className="hidden md:flex md:col-span-3 justify-center">
                     <button onClick={handleAbrirMenu}
                         className={`px-3 py-1 rounded-full text-[12px] font-bold ${getBadgeEstado(venta.estado)}`}>
                         {getLabelEstado(venta.estado)} ▾
                     </button>
                 </div>
-
-                {/* Acciones desktop — solo tacho */}
                 <div className="hidden md:flex md:col-span-3 justify-end gap-2">
                     <button onClick={() => onEliminar(venta.id)} disabled={eliminando === venta.id}
                         className="p-2 rounded-[8px] hover:bg-[#ffdada] transition-colors text-[#ba1a1a] disabled:opacity-50">🗑️</button>
                 </div>
-
-                {/* Indicador swipe mobile */}
                 <div className="col-span-2 md:hidden flex justify-end">
                     <span className="text-[#bec9bf] text-[18px]">‹</span>
                 </div>
             </div>
 
-            {/* Dropdown via portal */}
             {editandoEstado && ReactDOM.createPortal(
-                <div
-                    className="fixed bg-white rounded-[12px] shadow-[0px_8px_24px_rgba(0,0,0,0.15)] z-[9999] min-w-[180px] overflow-hidden border border-[#eceeec]"
+                <div className="fixed bg-white rounded-[12px] shadow-[0px_8px_24px_rgba(0,0,0,0.15)] z-[9999] min-w-[180px] overflow-hidden border border-[#eceeec]"
                     style={{ top: menuPos.top, left: menuPos.left }}
-                    onClick={e => e.stopPropagation()}
-                >
+                    onClick={e => e.stopPropagation()}>
                     <div className="px-4 py-3">
                         <p className="text-[#6f7a71] text-[10px] font-bold tracking-[0.6px] uppercase mb-2">Cambiar estado</p>
                         {['COBRADA', 'PENDIENTE', 'CANCELADA'].map(estado => (
                             <button key={estado} disabled={actualizando || venta.estado === estado}
                                 onClick={() => { onCambiarEstado(venta.id, estado); setEditandoEstado(false) }}
-                                className={`w-full text-left px-3 py-2 rounded-[8px] text-[12px] font-bold mb-1 transition-colors ${venta.estado === estado
-                                        ? getBadgeEstado(estado) + ' opacity-50 cursor-default'
-                                        : getBadgeEstado(estado) + ' hover:opacity-80'
-                                    }`}>
+                                className={`w-full text-left px-3 py-2 rounded-[8px] text-[12px] font-bold mb-1 transition-colors ${venta.estado === estado ? getBadgeEstado(estado) + ' opacity-50 cursor-default' : getBadgeEstado(estado) + ' hover:opacity-80'}`}>
                                 {venta.estado === estado ? '✓ ' : ''}{getLabelEstado(estado)}
                             </button>
                         ))}
@@ -177,9 +154,15 @@ export default function Ventas() {
     const { emprendimientoActivo } = useEmprendimiento()
     const [ventas, setVentas] = useState<VentaAPI[]>([])
     const [clientes, setClientes] = useState<ClienteAPI[]>([])
+    const [productos, setProductos] = useState<ProductoAPI[]>([])
     const [loadingVentas, setLoadingVentas] = useState(true)
     const [errorVentas, setErrorVentas] = useState('')
 
+    // Modo de producto
+    const [modoProducto, setModoProducto] = useState<ModoProducto>('libre')
+    const [productoSeleccionado, setProductoSeleccionado] = useState<ProductoAPI | null>(null)
+
+    // Formulario
     const [producto, setProducto] = useState('')
     const [cantidad, setCantidad] = useState('1')
     const [precio, setPrecio] = useState('')
@@ -203,12 +186,14 @@ export default function Ventas() {
         if (!emprendimientoActivo) return
         try {
             setLoadingVentas(true)
-            const [ventasData, clientesData] = await Promise.all([
+            const [ventasData, clientesData, productosData] = await Promise.all([
                 getVentas(emprendimientoActivo.id),
                 getClientes(emprendimientoActivo.id),
+                getProductos(emprendimientoActivo.id),
             ])
             setVentas(ventasData)
             setClientes(clientesData)
+            setProductos(productosData.filter((p: ProductoAPI) => p.stockTotal > 0))
         } catch (err: any) {
             setErrorVentas(err.message || 'Error al cargar ventas')
         } finally {
@@ -217,6 +202,24 @@ export default function Ventas() {
     }
 
     useEffect(() => { cargarDatos() }, [emprendimientoActivo])
+
+    const handleSeleccionarProducto = (p: ProductoAPI) => {
+        setProductoSeleccionado(p)
+        setProducto(p.nombre)
+        setPrecio(String(parseFloat(p.precio)))
+    }
+
+    const handleCambiarModo = (modo: ModoProducto) => {
+        setModoProducto(modo)
+        setProducto('')
+        setPrecio('')
+        setCantidad('1')
+        setProductoSeleccionado(null)
+    }
+
+    const cantidadNum = parseInt(cantidad) || 1
+    const stockDisponible = productoSeleccionado ? productoSeleccionado.stockTotal : Infinity
+    const stockInsuficiente = modoProducto === 'stock' && productoSeleccionado && cantidadNum > stockDisponible
 
     const handleCrearCliente = async () => {
         if (!emprendimientoActivo || !nombreNuevoCliente.trim()) return
@@ -242,9 +245,13 @@ export default function Ventas() {
 
     const handleConfirmar = async () => {
         if (!emprendimientoActivo || !precio) return
+        if (stockInsuficiente) {
+            alert(`Stock insuficiente. Solo hay ${stockDisponible} unidades disponibles.`)
+            return
+        }
         try {
             setGuardando(true)
-            const total = parseFloat(precio) * parseInt(cantidad)
+            const total = parseFloat(precio) * cantidadNum
             const cIdNum = clienteId !== 'sin-cliente' ? parseInt(clienteId) : undefined
 
             await crearVenta(emprendimientoActivo.id, {
@@ -254,6 +261,11 @@ export default function Ventas() {
                 clienteId: cIdNum,
                 detalles: [],
             })
+
+            // Descontar stock si es producto del stock
+            if (modoProducto === 'stock' && productoSeleccionado) {
+                await descontarStock(emprendimientoActivo.id, productoSeleccionado.id, cantidadNum)
+            }
 
             if (requierePreparacion) {
                 await crearPedido(emprendimientoActivo.id, {
@@ -265,6 +277,7 @@ export default function Ventas() {
 
             setProducto(''); setCantidad('1'); setPrecio(''); setCobrado(false)
             setRequierePreparacion(false); setMetodoPago('efectivo'); setClienteId('sin-cliente')
+            setProductoSeleccionado(null)
             await cargarDatos()
 
             if (requierePreparacion) {
@@ -335,6 +348,9 @@ export default function Ventas() {
     const totalHoy = ventasHoy.reduce((acc, v) => acc + parseFloat(v.total), 0)
     const ticketPromedio = ventas.length > 0 ? ventas.reduce((acc, v) => acc + parseFloat(v.total), 0) / ventas.length : 0
 
+    const puedeConfirmar = !guardando && !!precio && !stockInsuficiente &&
+        (modoProducto === 'libre' ? !!producto.trim() : !!productoSeleccionado)
+
     return (
         <div className="flex flex-col gap-8 md:gap-10">
             <div className="flex flex-col gap-1">
@@ -351,13 +367,76 @@ export default function Ventas() {
                         <h2 className="text-[#191c1b] text-[20px] font-bold">¿Qué vendiste?</h2>
                     </div>
 
-                    <div className="flex flex-col gap-5">
-                        <div className="flex flex-col gap-2">
-                            <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Producto o Concepto</label>
-                            <input type="text" value={producto} onChange={e => setProducto(e.target.value)} placeholder="Ej. Pan, Leche, Yerba..."
-                                className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full" />
-                        </div>
+                    {/* Toggle modo producto */}
+                    <div className="bg-[#f2f4f2] flex p-1 rounded-[10px]">
+                        <button
+                            onClick={() => handleCambiarModo('stock')}
+                            className={`flex-1 py-2.5 rounded-[8px] text-[13px] font-bold transition-colors ${modoProducto === 'stock' ? 'bg-white text-[#006039] shadow-sm' : 'text-[#3f4941]'}`}>
+                            📦 Del stock
+                        </button>
+                        <button
+                            onClick={() => handleCambiarModo('libre')}
+                            className={`flex-1 py-2.5 rounded-[8px] text-[13px] font-bold transition-colors ${modoProducto === 'libre' ? 'bg-white text-[#006039] shadow-sm' : 'text-[#3f4941]'}`}>
+                            ✏️ Concepto libre
+                        </button>
+                    </div>
 
+                    <div className="flex flex-col gap-5">
+
+                        {/* Producto del stock */}
+                        {modoProducto === 'stock' ? (
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Producto</label>
+                                {productos.length === 0 ? (
+                                    <div className="bg-[#fff3cd] rounded-[8px] px-4 py-3 text-[13px] text-[#856404] font-medium">
+                                        No hay productos con stock disponible. Agregá productos en la sección Stock.
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto">
+                                        {productos.map(p => (
+                                            <button key={p.id}
+                                                onClick={() => handleSeleccionarProducto(p)}
+                                                className={`flex items-center justify-between px-4 py-3 rounded-[8px] text-left transition-all border-2 ${productoSeleccionado?.id === p.id
+                                                    ? 'border-[#006039] bg-[#f0faf5]'
+                                                    : 'border-transparent bg-[#eceeec] hover:border-[#bec9bf]'}`}>
+                                                <div>
+                                                    <p className={`text-[14px] font-bold ${productoSeleccionado?.id === p.id ? 'text-[#006039]' : 'text-[#191c1b]'}`}>
+                                                        {p.nombre}
+                                                    </p>
+                                                    <p className="text-[#6f7a71] text-[11px]">
+                                                        {p.categoria?.nombre || 'Sin categoría'} • Stock: {p.stockTotal} u.
+                                                    </p>
+                                                </div>
+                                                <div className="text-right shrink-0 ml-3">
+                                                    <p className="text-[#006039] text-[14px] font-bold">
+                                                        ${parseFloat(p.precio).toLocaleString('es-AR')}
+                                                    </p>
+                                                    {productoSeleccionado?.id === p.id && (
+                                                        <span className="text-[10px] text-[#006039] font-bold">✓ Seleccionado</span>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Alerta stock insuficiente */}
+                                {stockInsuficiente && (
+                                    <div className="bg-[#ffdada] rounded-[8px] px-4 py-2 text-[12px] text-[#7b2c33] font-bold">
+                                        ⚠️ Stock insuficiente. Disponible: {stockDisponible} u.
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Producto o Concepto</label>
+                                <input type="text" value={producto} onChange={e => setProducto(e.target.value)}
+                                    placeholder="Ej. Pan, Leche, Yerba..."
+                                    className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full" />
+                            </div>
+                        )}
+
+                        {/* Cliente */}
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between px-1">
                                 <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase">Cliente</label>
@@ -402,19 +481,29 @@ export default function Ventas() {
                             </select>
                         </div>
 
+                        {/* Cantidad y precio */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Cantidad</label>
-                                <input type="number" value={cantidad} onChange={e => setCantidad(e.target.value)}
-                                    className="bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full" />
+                                <input type="number" min="1" value={cantidad}
+                                    onChange={e => setCantidad(e.target.value)}
+                                    className={`bg-[#eceeec] rounded-[8px] px-4 py-[17px] text-[16px] text-[#191c1b] outline-none focus:ring-2 w-full ${stockInsuficiente ? 'ring-2 ring-[#ba1a1a]' : 'focus:ring-[#006039]'}`} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">Precio Unitario</label>
+                                <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase px-1">
+                                    Precio Unitario {modoProducto === 'stock' && productoSeleccionado ? '(del producto)' : ''}
+                                </label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3f4941] text-[16px]">$</span>
-                                    <input type="number" value={precio} onChange={e => setPrecio(e.target.value)} placeholder="0.00"
-                                        className="bg-[#eceeec] rounded-[8px] pl-8 pr-4 py-[17px] text-[16px] text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full" />
+                                    <input type="number" value={precio}
+                                        onChange={e => setPrecio(e.target.value)}
+                                        placeholder="0.00"
+                                        readOnly={modoProducto === 'stock' && !!productoSeleccionado}
+                                        className={`bg-[#eceeec] rounded-[8px] pl-8 pr-4 py-[17px] text-[16px] text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full ${modoProducto === 'stock' && productoSeleccionado ? 'opacity-70 cursor-not-allowed' : ''}`} />
                                 </div>
+                                {modoProducto === 'stock' && productoSeleccionado && (
+                                    <p className="text-[#6f7a71] text-[10px] px-1">Precio cargado automáticamente</p>
+                                )}
                             </div>
                         </div>
 
@@ -449,8 +538,7 @@ export default function Ventas() {
                                 <div className="flex gap-2">
                                     {(['efectivo', 'tarjeta', 'transferencia'] as MetodoPago[]).map((m) => (
                                         <button key={m} onClick={() => setMetodoPago(m)}
-                                            className={`flex-1 py-3 rounded-[8px] text-[12px] font-bold capitalize transition-colors border-2 ${metodoPago === m ? 'bg-[#cbe6d3] border-[#006039] text-[#506859]' : 'bg-[#eceeec] border-transparent text-[#3f4941]'
-                                                }`}>
+                                            className={`flex-1 py-3 rounded-[8px] text-[12px] font-bold capitalize transition-colors border-2 ${metodoPago === m ? 'bg-[#cbe6d3] border-[#006039] text-[#506859]' : 'bg-[#eceeec] border-transparent text-[#3f4941]'}`}>
                                             {m.charAt(0).toUpperCase() + m.slice(1)}
                                         </button>
                                     ))}
@@ -459,16 +547,16 @@ export default function Ventas() {
                         )}
                     </div>
 
-                    {precio && (
+                    {precio && !stockInsuficiente && (
                         <div className="bg-[#f2f4f2] rounded-[12px] px-5 py-4 flex items-center justify-between">
                             <span className="text-[#3f4941] text-[14px] font-medium">Total</span>
                             <span className="text-[#006039] text-[20px] font-extrabold">
-                                ${(parseFloat(precio) * parseInt(cantidad || '1')).toLocaleString('es-AR')}
+                                ${(parseFloat(precio) * cantidadNum).toLocaleString('es-AR')}
                             </span>
                         </div>
                     )}
 
-                    <button onClick={handleConfirmar} disabled={guardando || !precio}
+                    <button onClick={handleConfirmar} disabled={!puedeConfirmar}
                         className="w-full py-5 rounded-[8px] text-white text-[18px] font-extrabold shadow-[0px_10px_15px_-3px_rgba(0,96,57,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ background: requierePreparacion ? 'linear-gradient(137deg, #856404 0%, #a07a10 100%)' : 'linear-gradient(137deg, #006039 0%, #1a7a4d 100%)' }}>
                         {guardando ? 'Registrando...' : requierePreparacion ? '📋 Confirmar + Crear Pedido' : cobrado ? 'Confirmar Venta ✓' : 'Registrar como Pendiente'}

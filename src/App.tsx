@@ -12,6 +12,8 @@ import Productos from './pages/Productos'
 import { EmprendimientoProvider, useEmprendimiento } from './context/EmprendimientoContext'
 import SeleccionEmprendimiento from './pages/SeleccionEmprendimiento'
 import Pedidos from './pages/Pedidos'
+import ProximamentePage from './components/ProximamentePage'
+import Reportes from './pages/Reportes'
 
 // Wrapper interno que usa el contexto
 const ProtectedContent = () => {
@@ -54,6 +56,13 @@ function App() {
           <Route path="/clientes" element={<Layout><Clientes /></Layout>} />
           <Route path="/productos" element={<Layout><Productos /></Layout>} />
           <Route path="/pedidos" element={<Layout><Pedidos /></Layout>} />
+          <Route path="/reportes" element={<Layout><Reportes /></Layout>} />
+          <Route path="/integraciones" element={
+            <Layout><ProximamentePage titulo="Integraciones" emoji="🔗" descripcion="Conectá tu negocio con MercadoPago, TiendaNube y WhatsApp. Muy pronto." /></Layout>
+          } />
+          <Route path="/perfil" element={
+            <Layout><ProximamentePage titulo="Mi Perfil" emoji="👤" descripcion="Gestioná tu cuenta y configuración personal." /></Layout>
+          } />
         </Route>
       </Routes>
     </BrowserRouter>
