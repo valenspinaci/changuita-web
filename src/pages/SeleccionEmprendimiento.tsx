@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
+import { useAuth } from '../context/AuthContext'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { crearEmprendimiento } from '../services/api'
 import imgChanguita from '../assets/logoChanguita.svg'
 
 export default function SeleccionEmprendimiento() {
-    const { logout } = useAuth0()
+    const { logout } = useAuth()
     const { emprendimientos, setEmprendimientoActivo, recargar } = useEmprendimiento()
     const [mostrarFormulario, setMostrarFormulario] = useState(false)
     const [nombre, setNombre] = useState('')
@@ -95,7 +95,7 @@ export default function SeleccionEmprendimiento() {
 
                         {/* Cerrar sesión */}
                         <button
-                            onClick={() => logout({ logoutParams: { returnTo: `${process.env.REACT_APP_URL}` } })}
+                            onClick={() => logout()}
                             className="w-full mt-4 text-center text-[#6f7a71] text-[14px] font-medium"
                         >
                             Cerrar sesión
