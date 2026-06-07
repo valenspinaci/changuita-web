@@ -1,46 +1,122 @@
-# Getting Started with Create React App
+# Changuita – Web App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Aplicación web del sistema Changuita, una plataforma de gestión para emprendedores. Desarrollada en React con TypeScript y Tailwind CSS, consume la API REST del backend y utiliza Auth0 para la autenticación.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## Descripción del proyecto
 
-### `npm start`
+Changuita Web es la interfaz de escritorio/tablet del sistema. Permite al emprendedor gestionar su negocio completo: registrar ventas, controlar stock, administrar clientes y pedidos, registrar gastos, visualizar reportes con gráficos, y configurar módulos del sistema.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+---
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Instalación de dependencias
 
-### `npm test`
+```bash
+npm install
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## Cómo correr el proyecto en local
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm start
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+La aplicación corre por defecto en `http://localhost:3002`.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Para generar el build de producción:
 
-### `npm run eject`
+```bash
+npm run build
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+---
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Variables de entorno
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Crear un archivo `.env` en la raíz del proyecto con las siguientes variables:
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+```env
+# Auth0
+REACT_APP_AUTH0_DOMAIN=dev-yhoe6u1lccz83eud.us.auth0.com
+REACT_APP_AUTH0_CLIENT_ID=<client_id_de_auth0>
+REACT_APP_AUTH0_AUDIENCE=https://api.changuita.app
 
-## Learn More
+# Backend
+REACT_APP_API_URL=http://localhost:3001
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# URL de la app (para callbacks de Auth0)
+REACT_APP_URL=http://localhost:3002
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+> ⚠️ Nunca subir el archivo `.env` al repositorio.
+
+---
+
+## Arquitectura técnica
+
+```
+changuita-web/
+├── public/
+├── src/
+│   ├── context/
+│   │   └── AuthContext.tsx       # Contexto de autenticación (login, logout, token)
+│   ├── components/               # Componentes reutilizables (Layout, Sidebar, etc.)
+│   ├── pages/                    # Pantallas principales de la aplicación
+│   │   ├── Login.tsx
+│   │   ├── Registro.tsx
+│   │   ├── SeleccionEmprendimiento.tsx
+│   │   ├── Dashboard.tsx
+│   │   ├── Ventas.tsx
+│   │   ├── Gastos.tsx
+│   │   ├── Stock.tsx
+│   │   ├── Clientes.tsx
+│   │   ├── Pedidos.tsx
+│   │   └── Reportes.tsx
+│   ├── services/                 # Funciones para llamadas a la API REST
+│   ├── helpers/                  # Funciones utilitarias
+│   ├── App.tsx                   # Definición de rutas (React Router)
+│   └── index.tsx                 # Entry point
+├── .env                          # Variables de entorno (no incluido en el repo)
+├── .gitignore
+├── package.json
+└── tsconfig.json
+```
+
+---
+
+## Flujo de autenticación
+
+El login utiliza **Resource Owner Password Grant** directamente contra Auth0, sin redirigir a la pantalla de Auth0 Universal Login. El flujo es:
+
+1. El usuario ingresa email y contraseña en `Login.tsx`
+2. Se llama al endpoint de Auth0 para obtener el token JWT
+3. Se llama a `POST /auth/sync` en el backend para registrar/actualizar el usuario en la base de datos
+4. Se redirige a la pantalla de selección de emprendimiento
+
+---
+
+## Librerías principales
+
+| Librería | Uso |
+|---|---|
+| `react` + `react-dom` | Framework de UI |
+| `typescript` | Tipado estático |
+| `react-router-dom` | Navegación entre páginas |
+| `tailwindcss` | Estilos utilitarios |
+| `recharts` | Gráficos para el módulo de Reportes |
+| `axios` / `fetch` | Llamadas a la API REST |
+
+---
+
+## Deploy
+
+La aplicación está deployada en **Vercel**:
+
+```
+https://changuita-web.vercel.app
+```
+
+Cada push a `main` dispara un deploy automático en Vercel.
