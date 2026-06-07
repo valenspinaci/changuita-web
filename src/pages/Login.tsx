@@ -105,13 +105,23 @@ export default function Login() {
 
                             <div className="flex flex-col gap-4 pt-2">
                                 <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full py-4 rounded-[8px] text-white text-[16px] font-bold flex items-center justify-center gap-2 shadow-[0px_10px_15px_-3px_rgba(0,96,57,0.2)] disabled:opacity-60"
-                                    style={{ background: 'linear-gradient(136.97deg, #006039 0%, #1a7a4d 100%)' }}
-                                >
-                                    {loading ? 'Ingresando...' : 'Ingresar al sistema →'}
-                                </button>
+    type="submit"
+    disabled={loading}
+    className="w-full py-4 rounded-[8px] text-white text-[16px] font-bold flex items-center justify-center gap-2 shadow-[0px_10px_15px_-3px_rgba(0,96,57,0.2)] disabled:opacity-60"
+    style={{ background: 'linear-gradient(136.97deg, #006039 0%, #1a7a4d 100%)' }}
+>
+    {loading ? (
+        <>
+            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Ingresando...
+        </>
+    ) : (
+        'Ingresar al sistema →'
+    )}
+</button>
                             </div>
                         </form>
 
