@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
+import { useAuth } from './AuthContext'
 import { getMisEmprendimientos, setTokenGetter } from '../services/api'
 
 interface Emprendimiento {
@@ -20,56 +20,31 @@ interface EmprendimientoContextType {
 const EmprendimientoContext = createContext<EmprendimientoContextType | null>(null)
 
 export const EmprendimientoProvider = ({ children }: { children: React.ReactNode }) => {
-    const { getAccessTokenSilently, isAuthenticated, isLoading: authLoading } = useAuth0()
+    const { token } = useAuth()
     const [emprendimientos, setEmprendimientos] = useState<Emprendimiento[]>([])
     const [emprendimientoActivo, setEmprendimientoActivo] = useState<Emprendimiento | null>(null)
     const [loading, setLoading] = useState(true)
 
-const recargar = useCallback(async () => {
-    try {
-        setLoading(true)
-        const data = await getMisEmprendimientos()
-        setEmprendimientos(data)
-    } catch (err) {
-        console.error('Error cargando emprendimientos:', err)
-    } finally {
-        setLoading(false)
-    }
-}, [])
+    const recargar = useCallback(async () => {
+        try {
+            setLoading(true)
+            const data = await getMisEmprendimientos()
+            setEmprendimientos(data)
+        } catch (err) {
+            console.error('Error cargando emprendimientos:', err)
+        } finally {
+            setLoading(false)
+        }
+    }, [])
 
     useEffect(() => {
-        // Esperamos que Auth0 termine de inicializar
-        if (authLoading) return
-
-        // Si no está autenticado, no hacemos nada
-        if (!isAuthenticated) {
+        if (!token) {
             setLoading(false)
             return
         }
-
-const init = async () => {
-    try {
-        setLoading(true)
-        const token = await getAccessTokenSilently({
-            authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE },
-        })
-
-        if (token) {
-            setTokenGetter(() =>
-                getAccessTokenSilently({
-                    authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE },
-                })
-            )
-            await recargar()
-        }
-    } catch (err) {
-        console.error('Error inicializando:', err)
-        setLoading(false)
-    }
-}
-
-        init()
-    }, [isAuthenticated, authLoading, getAccessTokenSilently, recargar])
+        setTokenGetter(() => Promise.resolve(token))
+        recargar()
+    }, [token, recargar])
 
     return (
         <EmprendimientoContext.Provider
