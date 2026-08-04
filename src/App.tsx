@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import React from 'react'
 import Layout from './components/layout/Layout'
+import LoadingScreen from './components/LoadingScreen'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
 import Dashboard from './pages/Dashboard'
@@ -17,14 +18,14 @@ import { useAuth } from './context/AuthContext'
 
 const ProtectedContent = () => {
     const { emprendimientoActivo, loading } = useEmprendimiento()
-    if (loading) return <div>Cargando...</div>
+    if (loading) return <LoadingScreen />
     if (!emprendimientoActivo) return <SeleccionEmprendimiento />
     return <Outlet />
 }
 
 const ProtectedRoute = () => {
     const { token, loading } = useAuth()
-    if (loading) return <div>Cargando...</div>
+    if (loading) return <LoadingScreen />
     if (!token) return <Navigate to="/login" />
     return (
         <EmprendimientoProvider>
@@ -35,7 +36,7 @@ const ProtectedRoute = () => {
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
     const { token, loading } = useAuth()
-    if (loading) return <div>Cargando...</div>
+    if (loading) return <LoadingScreen />
     if (token) return <Navigate to="/" />
     return <>{children}</>
 }
