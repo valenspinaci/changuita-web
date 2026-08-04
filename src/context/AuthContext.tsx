@@ -26,6 +26,29 @@ function parseJwt(token: string): AuthUser {
     return JSON.parse(atob(base64))
 }
 
+function extractAuth0ErrorMessage(err: any, fallback: string): string {
+    if (typeof err?.description === 'string') return err.description
+
+    // PasswordStrengthError: description es un objeto con las reglas incumplidas, no un string
+    if (Array.isArray(err?.description?.rules)) {
+        const incumplidas = err.description.rules
+            .filter((r: any) => r.verified === false)
+            .map((r: any) => {
+                let msg = r.message as string
+                if (Array.isArray(r.format)) {
+                    r.format.forEach((f: any) => { msg = msg.replace('%d', f) })
+                }
+                return msg
+            })
+        if (incumplidas.length > 0) {
+            return `La contraseña no cumple los requisitos: ${incumplidas.join(', ')}`
+        }
+    }
+
+    if (typeof err?.message === 'string') return err.message
+    return fallback
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -98,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!res.ok) {
             const err = await res.json()
-            throw new Error(err.description || 'No se pudo crear la cuenta')
+            throw new Error(extractAuth0ErrorMessage(err, 'No se pudo crear la cuenta'))
         }
 
         await login(email, password)
