@@ -92,6 +92,9 @@ export default function Registro() {
                                     placeholder="••••••••"
                                     className="bg-[#eceeec] rounded-[8px] px-4 py-4 text-[16px] font-medium text-[#191c1b] placeholder-[rgba(111,122,113,0.5)] outline-none focus:ring-2 focus:ring-[#006039] w-full"
                                 />
+                                <p className="text-[#6f7a71] text-[12px] leading-[16px]">
+                                    Mínimo 8 caracteres, combinando al menos 3 de: mayúsculas, minúsculas, números y caracteres especiales.
+                                </p>
                             </div>
 
                             {error && (

@@ -72,6 +72,20 @@ function extractAuth0ErrorMessage(err: any, fallback: string): string {
     return fallback
 }
 
+function extractAuth0LoginErrorMessage(err: any): string {
+    if (err?.error === 'too_many_attempts') {
+        return 'Demasiados intentos fallidos. Tu cuenta quedó bloqueada temporalmente por seguridad — probá de nuevo en unos minutos.'
+    }
+    if (err?.error === 'unauthorized' && /blocked/i.test(err?.error_description ?? '')) {
+        return 'Tu cuenta está bloqueada. Contactanos si creés que es un error.'
+    }
+    if (err?.error === 'invalid_grant') {
+        return 'Correo o contraseña incorrectos.'
+    }
+    if (typeof err?.error_description === 'string') return err.error_description
+    return 'No pudimos iniciar sesión. Intentá de nuevo.'
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -112,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!res.ok) {
             const err = await res.json()
-            throw new Error(err.error_description || 'Credenciales incorrectas')
+            throw new Error(extractAuth0LoginErrorMessage(err))
         }
 
         const data = await res.json()
