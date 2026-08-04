@@ -26,25 +26,48 @@ function parseJwt(token: string): AuthUser {
     return JSON.parse(atob(base64))
 }
 
-function extractAuth0ErrorMessage(err: any, fallback: string): string {
-    if (typeof err?.description === 'string') return err.description
+const NOMBRES_TIPO_CARACTER: Record<string, string> = {
+    lowerCase: 'minúsculas',
+    upperCase: 'mayúsculas',
+    numbers: 'números',
+    specialCharacters: 'caracteres especiales',
+}
 
-    // PasswordStrengthError: description es un objeto con las reglas incumplidas, no un string
-    if (Array.isArray(err?.description?.rules)) {
-        const incumplidas = err.description.rules
-            .filter((r: any) => r.verified === false)
-            .map((r: any) => {
-                let msg = r.message as string
-                if (Array.isArray(r.format)) {
-                    r.format.forEach((f: any) => { msg = msg.replace('%d', f) })
-                }
-                return msg
-            })
-        if (incumplidas.length > 0) {
-            return `La contraseña no cumple los requisitos: ${incumplidas.join(', ')}`
+function describirRegla(rule: any): string | null {
+    if (rule.verified !== false) return null
+    if (rule.code === 'lengthAtLeast') {
+        return `al menos ${rule.format?.[0]} caracteres`
+    }
+    if (rule.code === 'containsAtLeast' && Array.isArray(rule.items)) {
+        const faltantes = rule.items
+            .filter((i: any) => i.verified === false)
+            .map((i: any) => NOMBRES_TIPO_CARACTER[i.code] || i.message)
+        if (faltantes.length > 0) {
+            return `combinar ${rule.format?.[0]} tipos de caracteres (te falta: ${faltantes.join(', ')})`
         }
     }
+    return null
+}
 
+function extractAuth0ErrorMessage(err: any, fallback: string): string {
+    // Auth0 usa este código genérico tanto para "el email ya existe" como para
+    // bloqueos de la connection, sin exponer el motivo real por seguridad.
+    if (err?.code === 'invalid_signup') {
+        return 'Ya existe una cuenta con este correo electrónico. Iniciá sesión en su lugar.'
+    }
+
+    // PasswordStrengthError: description es un objeto con las reglas incumplidas, no un string
+    if (err?.code === 'invalid_password' && Array.isArray(err?.description?.rules)) {
+        const detalles = err.description.rules
+            .map(describirRegla)
+            .filter((d: string | null): d is string => Boolean(d))
+        if (detalles.length > 0) {
+            return `La contraseña es muy débil: necesita ${detalles.join(' y ')}.`
+        }
+        return 'La contraseña no cumple los requisitos de seguridad.'
+    }
+
+    if (typeof err?.description === 'string') return err.description
     if (typeof err?.message === 'string') return err.message
     return fallback
 }
