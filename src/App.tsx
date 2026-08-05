@@ -12,6 +12,7 @@ import Productos from './pages/Productos'
 import Pedidos from './pages/Pedidos'
 import Reportes from './pages/Reportes'
 import ProximamentePage from './components/ProximamentePage'
+import Perfil from './pages/Perfil'
 import { EmprendimientoProvider, useEmprendimiento } from './context/EmprendimientoContext'
 import SeleccionEmprendimiento from './pages/SeleccionEmprendimiento'
 import { useAuth } from './context/AuthContext'
@@ -58,9 +59,7 @@ function App() {
                     <Route path="/integraciones" element={
                         <Layout><ProximamentePage titulo="Integraciones" emoji="🔗" descripcion="Conectá tu negocio con MercadoPago, TiendaNube y WhatsApp. Muy pronto." /></Layout>
                     } />
-                    <Route path="/perfil" element={
-                        <Layout><ProximamentePage titulo="Mi Perfil" emoji="👤" descripcion="Gestioná tu cuenta y configuración personal." /></Layout>
-                    } />
+                    <Route path="/perfil" element={<Layout><Perfil /></Layout>} />
                 </Route>
             </Routes>
         </BrowserRouter>

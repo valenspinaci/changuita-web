@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { ReactComponent as IconBusqueda } from '../../assets/icons/busqueda.svg'
 
 interface TopBarProps {
@@ -8,7 +8,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onMenuToggle }: TopBarProps) {
-    const { user, logout } = useAuth0()
+    const { user } = useAuth()
     const navigate = useNavigate()
     const [searchOpen, setSearchOpen] = useState(false)
 

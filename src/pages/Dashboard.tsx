@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth0 } from '@auth0/auth0-react'
+import { useAuth } from '../context/AuthContext'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { getVentas, getGastos, getProductos } from '../services/api'
 
@@ -35,7 +35,7 @@ const diasSemana = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SAB', 'DOM']
 export default function Dashboard() {
     const [periodo, setPeriodo] = useState<Periodo>('hoy')
     const navigate = useNavigate()
-    const { user } = useAuth0()
+    const { user } = useAuth()
     const { emprendimientoActivo } = useEmprendimiento()
 
     const [ventas, setVentas] = useState<VentaAPI[]>([])
