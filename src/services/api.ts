@@ -32,6 +32,11 @@ const request = async (method: string, path: string, body?: unknown) => {
 export const getMisEmprendimientos = () => request('GET', '/emprendimientos')
 export const crearEmprendimiento = (data: { nombre: string; descripcion?: string }) =>
     request('POST', '/emprendimientos', data)
+export const actualizarEmprendimiento = (id: number, data: { nombre?: string; descripcion?: string }) =>
+    request('PUT', `/emprendimientos/${id}`, data)
+
+// ── Perfil ───────────────────────────────────────────────────
+export const actualizarPerfil = (data: { nombre: string }) => request('PUT', '/auth/me', data)
 
 // ── Ventas ──────────────────────────────────────────────────
 export const getVentas = (emprendimientoId: number) =>

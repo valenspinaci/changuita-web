@@ -2,18 +2,114 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
+import { crearEmprendimiento, actualizarEmprendimiento } from '../services/api'
 
 export default function Perfil() {
-    const { user, logout } = useAuth()
-    const { emprendimientos, emprendimientoActivo, setEmprendimientoActivo } = useEmprendimiento()
+    const { user, logout, actualizarNombre } = useAuth()
+    const { emprendimientos, emprendimientoActivo, setEmprendimientoActivo, recargar } = useEmprendimiento()
     const navigate = useNavigate()
     const [confirmandoLogout, setConfirmandoLogout] = useState(false)
+
+    // Edición de nombre de usuario
+    const [editandoPerfil, setEditandoPerfil] = useState(false)
+    const [nombrePerfil, setNombrePerfil] = useState('')
+    const [guardandoPerfil, setGuardandoPerfil] = useState(false)
+    const [errorPerfil, setErrorPerfil] = useState('')
+
+    // Edición de un emprendimiento existente
+    const [empEditandoId, setEmpEditandoId] = useState<number | null>(null)
+    const [nombreEmp, setNombreEmp] = useState('')
+    const [descripcionEmp, setDescripcionEmp] = useState('')
+    const [guardandoEmp, setGuardandoEmp] = useState(false)
+    const [errorEmp, setErrorEmp] = useState('')
+
+    // Alta de nuevo emprendimiento
+    const [creandoNuevo, setCreandoNuevo] = useState(false)
+    const [nombreNuevo, setNombreNuevo] = useState('')
+    const [descripcionNuevo, setDescripcionNuevo] = useState('')
+    const [guardandoNuevo, setGuardandoNuevo] = useState(false)
+    const [errorNuevo, setErrorNuevo] = useState('')
 
     const inicial = (user?.name || user?.email || 'U').charAt(0).toUpperCase()
 
     const handleLogout = () => {
         logout()
         navigate('/login')
+    }
+
+    const abrirEdicionPerfil = () => {
+        setNombrePerfil(user?.name || '')
+        setErrorPerfil('')
+        setEditandoPerfil(true)
+    }
+
+    const guardarPerfil = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!nombrePerfil.trim()) return
+        try {
+            setGuardandoPerfil(true)
+            setErrorPerfil('')
+            await actualizarNombre(nombrePerfil.trim())
+            setEditandoPerfil(false)
+        } catch (err: any) {
+            setErrorPerfil(err.message || 'No se pudo actualizar el perfil')
+        } finally {
+            setGuardandoPerfil(false)
+        }
+    }
+
+    const abrirEdicionEmp = (emp: { id: number; nombre: string; descripcion?: string }) => {
+        setEmpEditandoId(emp.id)
+        setNombreEmp(emp.nombre)
+        setDescripcionEmp(emp.descripcion || '')
+        setErrorEmp('')
+        setCreandoNuevo(false)
+    }
+
+    const guardarEmp = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (empEditandoId === null || !nombreEmp.trim()) return
+        try {
+            setGuardandoEmp(true)
+            setErrorEmp('')
+            const actualizado = await actualizarEmprendimiento(empEditandoId, {
+                nombre: nombreEmp.trim(),
+                descripcion: descripcionEmp.trim() || undefined,
+            })
+            if (emprendimientoActivo?.id === empEditandoId) {
+                setEmprendimientoActivo(actualizado)
+            }
+            await recargar()
+            setEmpEditandoId(null)
+        } catch (err: any) {
+            setErrorEmp(err.message || 'No se pudo actualizar el emprendimiento')
+        } finally {
+            setGuardandoEmp(false)
+        }
+    }
+
+    const abrirNuevoEmp = () => {
+        setNombreNuevo('')
+        setDescripcionNuevo('')
+        setErrorNuevo('')
+        setEmpEditandoId(null)
+        setCreandoNuevo(true)
+    }
+
+    const guardarNuevoEmp = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!nombreNuevo.trim()) return
+        try {
+            setGuardandoNuevo(true)
+            setErrorNuevo('')
+            await crearEmprendimiento({ nombre: nombreNuevo.trim(), descripcion: descripcionNuevo.trim() || undefined })
+            await recargar()
+            setCreandoNuevo(false)
+        } catch (err: any) {
+            setErrorNuevo(err.message || 'No se pudo crear el emprendimiento')
+        } finally {
+            setGuardandoNuevo(false)
+        }
     }
 
     return (
@@ -28,42 +124,135 @@ export default function Perfil() {
             </div>
 
             {/* Datos del usuario */}
-            <div className="bg-white rounded-[12px] shadow-[0px_12px_32px_0px_rgba(25,28,27,0.06)] p-6 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-[#006039] flex items-center justify-center text-white text-[24px] font-bold shrink-0">
-                    {inicial}
-                </div>
-                <div className="min-w-0">
-                    <p className="text-[#191c1b] text-[18px] font-bold truncate">
-                        {user?.name || 'Emprendedor'}
-                    </p>
-                    <p className="text-[#6f7a71] text-[14px] truncate">
-                        {user?.email}
-                    </p>
-                </div>
+            <div className="bg-white rounded-[12px] shadow-[0px_12px_32px_0px_rgba(25,28,27,0.06)] p-6">
+                {!editandoPerfil ? (
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-full bg-[#006039] flex items-center justify-center text-white text-[24px] font-bold shrink-0">
+                            {inicial}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[#191c1b] text-[18px] font-bold truncate">
+                                {user?.name || 'Emprendedor'}
+                            </p>
+                            <p className="text-[#6f7a71] text-[14px] truncate">
+                                {user?.email}
+                            </p>
+                        </div>
+                        <button
+                            onClick={abrirEdicionPerfil}
+                            className="p-2 rounded-[8px] hover:bg-[#f0f4f1] transition-colors text-[#506859] shrink-0"
+                            title="Editar perfil"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </button>
+                    </div>
+                ) : (
+                    <form onSubmit={guardarPerfil} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-[#3f4941] text-[12px] font-bold tracking-[0.6px] uppercase">
+                                Nombre
+                            </label>
+                            <input
+                                type="text"
+                                value={nombrePerfil}
+                                onChange={e => setNombrePerfil(e.target.value)}
+                                className="bg-[#eceeec] rounded-[8px] px-4 py-3 text-[16px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full"
+                                autoFocus
+                            />
+                        </div>
+                        <p className="text-[#6f7a71] text-[13px]">{user?.email}</p>
+                        {errorPerfil && <p className="text-[#ba1a1a] text-[13px]">{errorPerfil}</p>}
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setEditandoPerfil(false)}
+                                className="px-4 py-2 rounded-[8px] bg-[#f2f4f2] text-[#3f4941] text-[14px] font-bold"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={guardandoPerfil || !nombrePerfil.trim()}
+                                className="px-4 py-2 rounded-[8px] text-white text-[14px] font-bold disabled:opacity-50"
+                                style={{ background: '#006039' }}
+                            >
+                                {guardandoPerfil ? 'Guardando...' : 'Guardar cambios'}
+                            </button>
+                        </div>
+                    </form>
+                )}
             </div>
 
             {/* Emprendimientos */}
-            {emprendimientos.length > 0 && (
-                <div className="bg-white rounded-[12px] shadow-[0px_12px_32px_0px_rgba(25,28,27,0.06)] p-6">
-                    <h2 className="text-[#191c1b] text-[16px] font-bold mb-4">
-                        Tus emprendimientos
-                    </h2>
-                    <div className="flex flex-col gap-2">
-                        {emprendimientos.map(emp => {
-                            const activo = emp.id === emprendimientoActivo?.id
+            <div className="bg-white rounded-[12px] shadow-[0px_12px_32px_0px_rgba(25,28,27,0.06)] p-6">
+                <h2 className="text-[#191c1b] text-[16px] font-bold mb-4">
+                    Tus emprendimientos
+                </h2>
+                <div className="flex flex-col gap-2">
+                    {emprendimientos.map(emp => {
+                        const activo = emp.id === emprendimientoActivo?.id
+                        const editando = empEditandoId === emp.id
+
+                        if (editando) {
                             return (
-                                <button
+                                <form
                                     key={emp.id}
+                                    onSubmit={guardarEmp}
+                                    className="flex flex-col gap-3 p-3 rounded-[10px] bg-[#f8faf8] border border-[#cbe6d3]"
+                                >
+                                    <input
+                                        type="text"
+                                        value={nombreEmp}
+                                        onChange={e => setNombreEmp(e.target.value)}
+                                        placeholder="Nombre del negocio"
+                                        className="bg-white rounded-[8px] px-3 py-2 text-[14px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full"
+                                        autoFocus
+                                    />
+                                    <input
+                                        type="text"
+                                        value={descripcionEmp}
+                                        onChange={e => setDescripcionEmp(e.target.value)}
+                                        placeholder="Descripción (opcional)"
+                                        className="bg-white rounded-[8px] px-3 py-2 text-[14px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full"
+                                    />
+                                    {errorEmp && <p className="text-[#ba1a1a] text-[13px]">{errorEmp}</p>}
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setEmpEditandoId(null)}
+                                            className="px-3 py-2 rounded-[8px] bg-[#eceeec] text-[#3f4941] text-[13px] font-bold"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={guardandoEmp || !nombreEmp.trim()}
+                                            className="px-3 py-2 rounded-[8px] text-white text-[13px] font-bold disabled:opacity-50"
+                                            style={{ background: '#006039' }}
+                                        >
+                                            {guardandoEmp ? 'Guardando...' : 'Guardar'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )
+                        }
+
+                        return (
+                            <div
+                                key={emp.id}
+                                className={`w-full flex items-center gap-3 p-3 rounded-[10px] transition-colors ${activo ? 'bg-[#cbe6d3]' : 'bg-[#f8faf8] hover:bg-[#f0f4f1]'
+                                    }`}
+                            >
+                                <button
                                     onClick={() => setEmprendimientoActivo(emp)}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-[10px] text-left transition-colors ${activo
-                                        ? 'bg-[#cbe6d3]'
-                                        : 'bg-[#f8faf8] hover:bg-[#f0f4f1]'
-                                        }`}
+                                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
                                 >
                                     <div className="w-9 h-9 rounded-[8px] bg-white flex items-center justify-center text-[#006039] text-[14px] font-extrabold shrink-0">
                                         {emp.nombre.charAt(0).toUpperCase()}
                                     </div>
-                                    <span className="text-[#191c1b] text-[14px] font-bold truncate flex-1">
+                                    <span className="text-[#191c1b] text-[14px] font-bold truncate">
                                         {emp.nombre}
                                     </span>
                                     {activo && (
@@ -72,11 +261,65 @@ export default function Perfil() {
                                         </span>
                                     )}
                                 </button>
-                            )
-                        })}
-                    </div>
+                                <button
+                                    onClick={() => abrirEdicionEmp(emp)}
+                                    className="p-1.5 rounded-[6px] hover:bg-white/60 transition-colors text-[#506859] shrink-0"
+                                    title="Editar emprendimiento"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        )
+                    })}
                 </div>
-            )}
+
+                {creandoNuevo ? (
+                    <form onSubmit={guardarNuevoEmp} className="flex flex-col gap-3 mt-3 p-3 rounded-[10px] bg-[#f8faf8] border border-[#cbe6d3]">
+                        <input
+                            type="text"
+                            value={nombreNuevo}
+                            onChange={e => setNombreNuevo(e.target.value)}
+                            placeholder="Ej: Almacén San Juan"
+                            className="bg-white rounded-[8px] px-3 py-2 text-[14px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full"
+                            autoFocus
+                        />
+                        <input
+                            type="text"
+                            value={descripcionNuevo}
+                            onChange={e => setDescripcionNuevo(e.target.value)}
+                            placeholder="Descripción (opcional)"
+                            className="bg-white rounded-[8px] px-3 py-2 text-[14px] text-[#191c1b] outline-none focus:ring-2 focus:ring-[#006039] w-full"
+                        />
+                        {errorNuevo && <p className="text-[#ba1a1a] text-[13px]">{errorNuevo}</p>}
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setCreandoNuevo(false)}
+                                className="px-3 py-2 rounded-[8px] bg-[#eceeec] text-[#3f4941] text-[13px] font-bold"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={guardandoNuevo || !nombreNuevo.trim()}
+                                className="px-3 py-2 rounded-[8px] text-white text-[13px] font-bold disabled:opacity-50"
+                                style={{ background: '#006039' }}
+                            >
+                                {guardandoNuevo ? 'Creando...' : 'Crear emprendimiento'}
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <button
+                        onClick={abrirNuevoEmp}
+                        className="w-full mt-3 py-3 rounded-[10px] border-2 border-dashed border-[#cbe6d3] text-[#006039] text-[14px] font-bold hover:bg-[#f8faf8] transition-colors"
+                    >
+                        + Agregar otro emprendimiento
+                    </button>
+                )}
+            </div>
 
             {/* Sesión */}
             <div className="bg-white rounded-[12px] shadow-[0px_12px_32px_0px_rgba(25,28,27,0.06)] p-6">

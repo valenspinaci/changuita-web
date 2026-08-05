@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { actualizarPerfil } from '../services/api'
 
 const AUTH0_DOMAIN = process.env.REACT_APP_AUTH0_DOMAIN!
 const AUTH0_CLIENT_ID = process.env.REACT_APP_AUTH0_CLIENT_ID!
@@ -19,6 +20,7 @@ interface AuthContextValue {
     login: (email: string, password: string) => Promise<void>
     register: (email: string, password: string, name: string) => Promise<void>
     logout: () => void
+    actualizarNombre: (nombre: string) => Promise<void>
 }
 
 function parseJwt(token: string): AuthUser {
@@ -171,8 +173,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
     }, [])
 
+    const actualizarNombre = useCallback(async (nombre: string) => {
+        await actualizarPerfil({ nombre })
+        setUser(prev => {
+            if (!prev) return prev
+            const actualizado = { ...prev, name: nombre }
+            localStorage.setItem('changuita_user', JSON.stringify(actualizado))
+            return actualizado
+        })
+    }, [])
+
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, register, logout, actualizarNombre }}>
             {children}
         </AuthContext.Provider>
     )
