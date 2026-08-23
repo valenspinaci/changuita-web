@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { getProductos, crearProducto, actualizarProducto, eliminarProducto, getCategoriasProducto, crearCategoriaProducto, eliminarCategoriaProducto } from '../services/api'
+import HelpTooltip from '../components/HelpTooltip'
+import { useToast } from '../context/ToastContext'
 
 type EstadoStock = 'AGOTADO' | 'BAJO STOCK' | 'ÓPTIMO'
 
@@ -23,6 +25,7 @@ interface CategoriaAPI {
 
 export default function Productos() {
     const { emprendimientoActivo } = useEmprendimiento()
+    const { showToast } = useToast()
     const [productos, setProductos] = useState<ProductoAPI[]>([])
     const [categorias, setCategorias] = useState<CategoriaAPI[]>([])
     const [loading, setLoading] = useState(true)
@@ -107,8 +110,9 @@ export default function Productos() {
             setCategoriaId(String(nueva.id))
             setNombreNuevaCategoria('')
             setMostrarNuevaCategoria(false)
+            showToast('Categoría creada', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al crear categoría')
+            showToast(err.message || 'Error al crear categoría', 'error')
         } finally {
             setCreandoCategoria(false)
         }
@@ -118,7 +122,7 @@ export default function Productos() {
         if (!emprendimientoActivo) return
         const productosEnCategoria = productos.filter(p => p.categoriaId === categoriaId).length
         if (productosEnCategoria > 0) {
-            alert(`No podés eliminar "${nombreCat}" porque tiene ${productosEnCategoria} producto${productosEnCategoria > 1 ? 's' : ''} asignado${productosEnCategoria > 1 ? 's' : ''}.`)
+            showToast(`No podés eliminar "${nombreCat}" porque tiene ${productosEnCategoria} producto${productosEnCategoria > 1 ? 's' : ''} asignado${productosEnCategoria > 1 ? 's' : ''}.`, 'error')
             return
         }
         if (!window.confirm(`¿Seguro que querés eliminar la categoría "${nombreCat}"?`)) return
@@ -127,8 +131,9 @@ export default function Productos() {
             await eliminarCategoriaProducto(emprendimientoActivo.id, categoriaId)
             setCategorias(prev => prev.filter(c => c.id !== categoriaId))
             if (categoriaActiva === categoriaId) setCategoriaActiva(null)
+            showToast('Categoría eliminada', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al eliminar categoría')
+            showToast(err.message || 'Error al eliminar categoría', 'error')
         } finally {
             setEliminandoCategoria(null)
         }
@@ -155,8 +160,9 @@ export default function Productos() {
             limpiarFormulario()
             setMostrarModal(false)
             await cargarDatos()
+            showToast(modoEdicion ? 'Producto actualizado' : 'Producto creado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al guardar producto')
+            showToast(err.message || 'Error al guardar producto', 'error')
         } finally {
             setGuardando(false)
         }
@@ -171,8 +177,9 @@ export default function Productos() {
             limpiarFormulario()
             setMostrarModal(false)
             await cargarDatos()
+            showToast('Producto eliminado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al eliminar producto')
+            showToast(err.message || 'Error al eliminar producto', 'error')
         } finally {
             setEliminando(false)
         }
@@ -241,7 +248,10 @@ export default function Productos() {
             {/* Tabla */}
             <div className="flex flex-col gap-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <h2 className="text-[#191c1b] text-[24px] font-bold tracking-[-0.6px]">Gestión de Productos</h2>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-[#191c1b] text-[24px] font-bold tracking-[-0.6px]">Gestión de Productos</h2>
+                        <HelpTooltip texto="Cargá tus productos con precio y stock inicial. Definí un stock mínimo para recibir alertas cuando se esté por acabar." />
+                    </div>
                     <div className="flex items-center gap-2 flex-wrap">
                         <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
                             placeholder="Buscar producto..."

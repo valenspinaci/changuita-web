@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { getPedidos, crearPedido, actualizarEstadoPedido, actualizarPedido, eliminarPedido, getClientes } from '../services/api'
+import HelpTooltip from '../components/HelpTooltip'
+import { useToast } from '../context/ToastContext'
 
 type EstadoPedido = 'PENDIENTE' | 'ACTIVO' | 'ENTREGADO' | 'CANCELADO'
 
@@ -29,6 +31,7 @@ const COLUMNAS: { estado: EstadoPedido; label: string; color: string; bg: string
 
 export default function Pedidos() {
     const { emprendimientoActivo } = useEmprendimiento()
+    const { showToast } = useToast()
     const [pedidos, setPedidos] = useState<PedidoAPI[]>([])
     const [clientes, setClientes] = useState<ClienteAPI[]>([])
     const [loading, setLoading] = useState(true)
@@ -85,8 +88,9 @@ export default function Pedidos() {
             setClienteId(''); setNotas(''); setFechaEstimada('')
             setMostrarModalNuevo(false)
             await cargarDatos()
+            showToast('Pedido creado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al crear pedido')
+            showToast(err.message || 'Error al crear pedido', 'error')
         } finally {
             setGuardando(false)
         }
@@ -113,8 +117,9 @@ export default function Pedidos() {
             })
             setPedidoEditando(null)
             await cargarDatos()
+            showToast('Pedido actualizado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al guardar cambios')
+            showToast(err.message || 'Error al guardar cambios', 'error')
         } finally {
             setEditGuardando(false)
         }
@@ -128,8 +133,9 @@ export default function Pedidos() {
             await eliminarPedido(emprendimientoActivo.id, pedidoEditando.id)
             setPedidoEditando(null)
             await cargarDatos()
+            showToast('Pedido cancelado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al cancelar pedido')
+            showToast(err.message || 'Error al cancelar pedido', 'error')
         } finally {
             setEliminando(false)
         }
@@ -147,6 +153,7 @@ export default function Pedidos() {
             await actualizarEstadoPedido(emprendimientoActivo.id, pedidoId, nuevoEstado)
         } catch (err) {
             await cargarDatos()
+            showToast('No se pudo actualizar el estado del pedido', 'error')
         }
     }
 
@@ -191,7 +198,10 @@ export default function Pedidos() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-[#191c1b] text-[28px] md:text-[36px] font-bold tracking-[-0.9px] leading-tight">Pedidos</h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-[#191c1b] text-[28px] md:text-[36px] font-bold tracking-[-0.9px] leading-tight">Pedidos</h1>
+                        <HelpTooltip texto="Arrastrá las tarjetas entre columnas para actualizar el estado de un pedido: pendiente, activo o entregado." />
+                    </div>
                     <p className="text-[#4c6455] text-[16px] font-medium">
                         Gestioná el estado de tus pedidos arrastrando las tarjetas.
                     </p>

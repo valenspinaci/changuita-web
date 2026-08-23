@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { getVentas, getGastos, getProductos } from '../services/api'
+import HelpTooltip from '../components/HelpTooltip'
 
 interface VentaAPI {
     id: number
@@ -199,9 +200,12 @@ export default function Reportes() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-[#191c1b] text-[28px] md:text-[30px] font-extrabold tracking-[-0.75px] leading-tight">
-                        Resumen de Crecimiento
-                    </h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-[#191c1b] text-[28px] md:text-[30px] font-extrabold tracking-[-0.75px] leading-tight">
+                            Resumen de Crecimiento
+                        </h1>
+                        <HelpTooltip texto="Elegí un período (hoy, semana, mes o personalizado) para ver tus ventas, gastos y ganancia estimada en gráficos." />
+                    </div>
                     <p className="text-[#3f4941] text-[16px]">
                         Monitoreá la salud financiera de tu emprendimiento en tiempo real.
                     </p>

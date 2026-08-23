@@ -3,10 +3,23 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { crearEmprendimiento, actualizarEmprendimiento } from '../services/api'
+import { useToast } from '../context/ToastContext'
+
+const NOMBRES_MODULO: Record<string, string> = {
+    ventas: 'Ventas',
+    pedidos: 'Pedidos',
+    gastos: 'Gastos',
+    clientes: 'Clientes',
+    stock: 'Stock',
+    reportes: 'Reportes',
+    integraciones: 'Integraciones',
+}
 
 export default function Perfil() {
     const { user, logout, actualizarNombre } = useAuth()
-    const { emprendimientos, emprendimientoActivo, setEmprendimientoActivo, recargar } = useEmprendimiento()
+    const { emprendimientos, emprendimientoActivo, setEmprendimientoActivo, recargar, modulos, cambiarModulo } = useEmprendimiento()
+    const { showToast } = useToast()
+    const [moduloCambiando, setModuloCambiando] = useState<number | null>(null)
     const navigate = useNavigate()
     const [confirmandoLogout, setConfirmandoLogout] = useState(false)
 
@@ -51,6 +64,7 @@ export default function Perfil() {
             setErrorPerfil('')
             await actualizarNombre(nombrePerfil.trim())
             setEditandoPerfil(false)
+            showToast('Perfil actualizado', 'success')
         } catch (err: any) {
             setErrorPerfil(err.message || 'No se pudo actualizar el perfil')
         } finally {
@@ -81,10 +95,22 @@ export default function Perfil() {
             }
             await recargar()
             setEmpEditandoId(null)
+            showToast('Emprendimiento actualizado', 'success')
         } catch (err: any) {
             setErrorEmp(err.message || 'No se pudo actualizar el emprendimiento')
         } finally {
             setGuardandoEmp(false)
+        }
+    }
+
+    const handleToggleModulo = async (moduloId: number, habilitado: boolean) => {
+        try {
+            setModuloCambiando(moduloId)
+            await cambiarModulo(moduloId, habilitado)
+        } catch (err: any) {
+            showToast(err.message || 'No se pudo actualizar el módulo', 'error')
+        } finally {
+            setModuloCambiando(null)
         }
     }
 
@@ -105,6 +131,7 @@ export default function Perfil() {
             await crearEmprendimiento({ nombre: nombreNuevo.trim(), descripcion: descripcionNuevo.trim() || undefined })
             await recargar()
             setCreandoNuevo(false)
+            showToast('Emprendimiento creado', 'success')
         } catch (err: any) {
             setErrorNuevo(err.message || 'No se pudo crear el emprendimiento')
         } finally {
@@ -320,6 +347,51 @@ export default function Perfil() {
                     </button>
                 )}
             </div>
+
+            {/* Módulos */}
+            {emprendimientoActivo && modulos.length > 0 && (
+                <div className="bg-white rounded-[12px] shadow-[0px_12px_32px_0px_rgba(25,28,27,0.06)] p-6">
+                    <h2 className="text-[#191c1b] text-[16px] font-bold mb-1">
+                        Módulos
+                    </h2>
+                    <p className="text-[#6f7a71] text-[13px] mb-4">
+                        Elegí qué secciones ves en el menú de <strong>{emprendimientoActivo.nombre}</strong>.
+                    </p>
+                    <div className="flex flex-col gap-1">
+                        {modulos.map(modulo => (
+                            <div
+                                key={modulo.id}
+                                className="w-full flex items-center gap-3 py-2.5"
+                            >
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[#191c1b] text-[14px] font-bold">
+                                        {NOMBRES_MODULO[modulo.nombre] || modulo.nombre}
+                                    </p>
+                                    {modulo.descripcion && (
+                                        <p className="text-[#6f7a71] text-[12px] truncate">
+                                            {modulo.descripcion}
+                                        </p>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={modulo.habilitado}
+                                    disabled={moduloCambiando === modulo.id}
+                                    onClick={() => handleToggleModulo(modulo.id, !modulo.habilitado)}
+                                    className={`relative w-11 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50 ${modulo.habilitado ? 'bg-[#006039]' : 'bg-[#d9dcda]'
+                                        }`}
+                                >
+                                    <span
+                                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${modulo.habilitado ? 'translate-x-5' : 'translate-x-0'
+                                            }`}
+                                    />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Sesión */}
             <div className="bg-white rounded-[12px] shadow-[0px_12px_32px_0px_rgba(25,28,27,0.06)] p-6">

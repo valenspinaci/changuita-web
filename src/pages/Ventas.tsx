@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { getVentas, crearVenta, actualizarEstadoVenta, eliminarVenta, getClientes, crearCliente, crearPedido, getProductos, descontarStock } from '../services/api'
+import HelpTooltip from '../components/HelpTooltip'
+import { useToast } from '../context/ToastContext'
 
 type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia'
 type ModoProducto = 'stock' | 'libre'
@@ -152,6 +154,7 @@ function FilaVenta({
 
 export default function Ventas() {
     const { emprendimientoActivo } = useEmprendimiento()
+    const { showToast } = useToast()
     const [ventas, setVentas] = useState<VentaAPI[]>([])
     const [clientes, setClientes] = useState<ClienteAPI[]>([])
     const [productos, setProductos] = useState<ProductoAPI[]>([])
@@ -236,8 +239,9 @@ export default function Ventas() {
             setNombreNuevoCliente(''); setTelefonoNuevoCliente('')
             setEmailNuevoCliente(''); setDireccionNuevoCliente('')
             setMostrarNuevoCliente(false)
+            showToast('Cliente creado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al crear cliente')
+            showToast(err.message || 'Error al crear cliente', 'error')
         } finally {
             setCreandoCliente(false)
         }
@@ -246,7 +250,7 @@ export default function Ventas() {
     const handleConfirmar = async () => {
         if (!emprendimientoActivo || !precio) return
         if (stockInsuficiente) {
-            alert(`Stock insuficiente. Solo hay ${stockDisponible} unidades disponibles.`)
+            showToast(`Stock insuficiente. Solo hay ${stockDisponible} unidades disponibles.`, 'error')
             return
         }
         try {
@@ -281,10 +285,12 @@ export default function Ventas() {
             await cargarDatos()
 
             if (requierePreparacion) {
-                alert('✅ Venta registrada y pedido creado en la sección Pedidos.')
+                showToast('Venta registrada y pedido creado en la sección Pedidos', 'success')
+            } else {
+                showToast('Venta registrada', 'success')
             }
         } catch (err: any) {
-            alert(err.message || 'Error al registrar venta')
+            showToast(err.message || 'Error al registrar venta', 'error')
         } finally {
             setGuardando(false)
         }
@@ -297,7 +303,7 @@ export default function Ventas() {
             await actualizarEstadoVenta(emprendimientoActivo.id, ventaId, nuevoEstado)
             await cargarDatos()
         } catch (err: any) {
-            alert(err.message || 'Error al actualizar estado')
+            showToast(err.message || 'Error al actualizar estado', 'error')
         } finally {
             setActualizando(false)
         }
@@ -310,8 +316,9 @@ export default function Ventas() {
             setEliminando(ventaId)
             await eliminarVenta(emprendimientoActivo.id, ventaId)
             await cargarDatos()
+            showToast('Venta eliminada', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al eliminar venta')
+            showToast(err.message || 'Error al eliminar venta', 'error')
         } finally {
             setEliminando(null)
         }
@@ -354,7 +361,10 @@ export default function Ventas() {
     return (
         <div className="flex flex-col gap-8 md:gap-10">
             <div className="flex flex-col gap-1">
-                <h1 className="text-[#191c1b] text-[28px] md:text-[30px] font-extrabold tracking-[-0.75px] leading-tight">Ventas</h1>
+                <div className="flex items-center gap-2">
+                    <h1 className="text-[#191c1b] text-[28px] md:text-[30px] font-extrabold tracking-[-0.75px] leading-tight">Ventas</h1>
+                    <HelpTooltip texto="Registrá una venta eligiendo un producto de tu stock (descuenta automático) o como concepto libre. Podés sumar cliente y medio de pago." />
+                </div>
                 <p className="text-[#3f4941] text-[16px] font-medium">Registrá los ingresos de hoy en tu emprendimiento.</p>
             </div>
 

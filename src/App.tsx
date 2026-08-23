@@ -15,12 +15,15 @@ import ProximamentePage from './components/ProximamentePage'
 import Perfil from './pages/Perfil'
 import { EmprendimientoProvider, useEmprendimiento } from './context/EmprendimientoContext'
 import SeleccionEmprendimiento from './pages/SeleccionEmprendimiento'
+import OnboardingFlow from './components/OnboardingFlow'
 import { useAuth } from './context/AuthContext'
 
 const ProtectedContent = () => {
     const { emprendimientoActivo, loading } = useEmprendimiento()
+    const { user } = useAuth()
     if (loading) return <LoadingScreen />
     if (!emprendimientoActivo) return <SeleccionEmprendimiento />
+    if (user?.onboardingCompletado === false) return <OnboardingFlow />
     return <Outlet />
 }
 

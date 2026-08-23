@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { getGastos, crearGasto, eliminarGasto, getCategorias, crearCategoria } from '../services/api'
+import HelpTooltip from '../components/HelpTooltip'
+import { useToast } from '../context/ToastContext'
 
 interface GastoAPI {
     id: number
@@ -87,6 +89,7 @@ function FilaGasto({
 
 export default function Gastos() {
     const { emprendimientoActivo } = useEmprendimiento()
+    const { showToast } = useToast()
     const [gastos, setGastos] = useState<GastoAPI[]>([])
     const [categorias, setCategorias] = useState<CategoriaAPI[]>([])
     const [loadingGastos, setLoadingGastos] = useState(true)
@@ -142,8 +145,9 @@ export default function Gastos() {
             setDescripcion('')
             setFecha(new Date().toISOString().split('T')[0])
             await cargarDatos()
+            showToast('Gasto registrado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al registrar gasto')
+            showToast(err.message || 'Error al registrar gasto', 'error')
         } finally {
             setGuardando(false)
         }
@@ -156,8 +160,9 @@ export default function Gastos() {
             setEliminando(gastoId)
             await eliminarGasto(emprendimientoActivo.id, gastoId)
             await cargarDatos()
+            showToast('Gasto eliminado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al eliminar gasto')
+            showToast(err.message || 'Error al eliminar gasto', 'error')
         } finally {
             setEliminando(null)
         }
@@ -172,8 +177,9 @@ export default function Gastos() {
             setCategoriaId(String(nueva.id))
             setNombreNuevaCategoria('')
             setMostrarNuevaCategoria(false)
+            showToast('Categoría creada', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al crear categoría')
+            showToast(err.message || 'Error al crear categoría', 'error')
         } finally {
             setCreandoCategoria(false)
         }
@@ -287,7 +293,10 @@ export default function Gastos() {
             {/* Hero + Filtros */}
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div className="flex flex-col gap-1">
-                    <p className="text-[#006039] text-[10px] font-bold tracking-[1px] uppercase">Balance Total</p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-[#006039] text-[10px] font-bold tracking-[1px] uppercase">Balance Total</p>
+                        <HelpTooltip texto="Registrá tus gastos con monto, fecha y categoría. Podés agrupar por categoría para ver en qué se va la plata." />
+                    </div>
                     <h1 className="text-[#191c1b] text-[36px] md:text-[48px] font-extrabold tracking-[-1.2px] leading-none">
                         ${totalMes.toLocaleString('es-AR')}
                     </h1>

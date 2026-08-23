@@ -38,6 +38,12 @@ export const actualizarEmprendimiento = (id: number, data: { nombre?: string; de
 // ── Perfil ───────────────────────────────────────────────────
 export const actualizarPerfil = (data: { nombre: string }) => request('PUT', '/auth/me', data)
 
+// ── Módulos ──────────────────────────────────────────────────
+export const getModulos = (emprendimientoId: number) =>
+    request('GET', `/emprendimientos/${emprendimientoId}/modulos`)
+export const toggleModulo = (emprendimientoId: number, moduloId: number, habilitado: boolean) =>
+    request('PATCH', `/emprendimientos/${emprendimientoId}/modulos/${moduloId}`, { habilitado })
+
 // ── Ventas ──────────────────────────────────────────────────
 export const getVentas = (emprendimientoId: number) =>
     request('GET', `/emprendimientos/${emprendimientoId}/ventas`)

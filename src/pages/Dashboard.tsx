@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { getVentas, getGastos, getProductos } from '../services/api'
+import HelpTooltip from '../components/HelpTooltip'
 
 type Periodo = 'hoy' | 'semana' | 'mes'
 
@@ -165,9 +166,12 @@ export default function Dashboard() {
             {/* Header */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-[#191c1b] text-[28px] md:text-[36px] font-extrabold tracking-[-0.9px] leading-tight">
-                        Panel de Control
-                    </h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-[#191c1b] text-[28px] md:text-[36px] font-extrabold tracking-[-0.9px] leading-tight">
+                            Panel de Control
+                        </h1>
+                        <HelpTooltip texto="Acá ves de un vistazo cómo está tu negocio: ventas, gastos, ganancia estimada y el flujo de la semana." />
+                    </div>
                     <p className="text-[#3f4941] text-[14px] md:text-[16px] font-medium">
                         Bienvenido de nuevo, {emprendimientoActivo?.nombre || user?.name || 'Emprendedor'}
                     </p>

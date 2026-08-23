@@ -11,6 +11,7 @@ interface AuthUser {
     email?: string
     name?: string
     picture?: string
+    onboardingCompletado?: boolean
 }
 
 interface AuthContextValue {
@@ -21,6 +22,7 @@ interface AuthContextValue {
     register: (email: string, password: string, name: string) => Promise<void>
     logout: () => void
     actualizarNombre: (nombre: string) => Promise<void>
+    completarOnboarding: () => Promise<void>
 }
 
 function parseJwt(token: string): AuthUser {
@@ -133,16 +135,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const data = await res.json()
         const authUser = parseJwt(data.access_token)
-        saveSession(data.access_token, authUser)
 
-        // POST /auth/sync justo después del login
-        await fetch(`${API_URL}/auth/sync`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${data.access_token}`,
-            },
-        })
+        // POST /auth/sync justo después del login: trae el estado guardado en nuestra DB
+        // (ej. onboardingCompletado), que no viene en el JWT de Auth0.
+        let onboardingCompletado: boolean | undefined
+        try {
+            const syncRes = await fetch(`${API_URL}/auth/sync`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${data.access_token}`,
+                },
+            })
+            if (syncRes.ok) {
+                const usuario = await syncRes.json()
+                onboardingCompletado = usuario.onboardingCompletado
+            }
+        } catch {
+            // si falla el sync, igual dejamos entrar al usuario con lo que vino del JWT
+        }
+
+        saveSession(data.access_token, { ...authUser, onboardingCompletado })
     }, [])
 
     const register = useCallback(async (email: string, password: string, name: string) => {
@@ -183,8 +196,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
     }, [])
 
+    const completarOnboarding = useCallback(async () => {
+        setUser(prev => {
+            if (!prev) return prev
+            const actualizado = { ...prev, onboardingCompletado: true }
+            localStorage.setItem('changuita_user', JSON.stringify(actualizado))
+            return actualizado
+        })
+        try {
+            await fetch(`${API_URL}/auth/onboarding`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}` },
+            })
+        } catch {
+            // el estado local ya se actualizó; si falla el request no volvemos a mostrar
+            // el onboarding en esta sesión, pero puede reintentar sincronizar en el próximo login
+        }
+    }, [token])
+
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, logout, actualizarNombre }}>
+        <AuthContext.Provider value={{ user, token, loading, login, register, logout, actualizarNombre, completarOnboarding }}>
             {children}
         </AuthContext.Provider>
     )

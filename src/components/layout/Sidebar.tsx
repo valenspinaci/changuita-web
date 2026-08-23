@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import imgChanguita from '../../assets/logoChanguita.svg'
+import { useEmprendimiento } from '../../context/EmprendimientoContext'
 import { ReactComponent as IconMiNegocio } from '../../assets/icons/mi-negocio.svg'
 import { ReactComponent as IconVentas } from '../../assets/icons/ventas.svg'
 import { ReactComponent as IconPedidos } from '../../assets/icons/pedidos.svg'
@@ -11,14 +12,14 @@ import { ReactComponent as IconIntegraciones } from '../../assets/icons/integrac
 import { ReactComponent as IconPlus } from '../../assets/icons/plus.svg'
 
 const navItems = [
-    { path: '/', label: 'Mi Negocio', Icon: IconMiNegocio },
-    { path: '/ventas', label: 'Ventas', Icon: IconVentas },
-    { path: '/pedidos', label: 'Pedidos', Icon: IconPedidos },
-    { path: '/gastos', label: 'Gastos', Icon: IconGastos },
-    { path: '/clientes', label: 'Clientes', Icon: IconClientes },
-    { path: '/productos', label: 'Stock', Icon: IconStock },
-    { path: '/reportes', label: 'Reportes', Icon: IconReportes },
-    { path: '/integraciones', label: 'Integraciones', Icon: IconIntegraciones },
+    { path: '/', label: 'Mi Negocio', Icon: IconMiNegocio, modulo: null },
+    { path: '/ventas', label: 'Ventas', Icon: IconVentas, modulo: 'ventas' },
+    { path: '/pedidos', label: 'Pedidos', Icon: IconPedidos, modulo: 'pedidos' },
+    { path: '/gastos', label: 'Gastos', Icon: IconGastos, modulo: 'gastos' },
+    { path: '/clientes', label: 'Clientes', Icon: IconClientes, modulo: 'clientes' },
+    { path: '/productos', label: 'Stock', Icon: IconStock, modulo: 'stock' },
+    { path: '/reportes', label: 'Reportes', Icon: IconReportes, modulo: 'reportes' },
+    { path: '/integraciones', label: 'Integraciones', Icon: IconIntegraciones, modulo: 'integraciones' },
 ]
 
 interface SidebarProps {
@@ -28,6 +29,8 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const navigate = useNavigate()
+    const { moduloHabilitado } = useEmprendimiento()
+    const itemsVisibles = navItems.filter(item => !item.modulo || moduloHabilitado(item.modulo))
 
     return (
         <>
@@ -61,7 +64,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 {/* Nav Items */}
                 <nav className="flex flex-col gap-1 flex-1 mt-4 md:mt-0">
-                    {navItems.map(({ path, label, Icon }) => (
+                    {itemsVisibles.map(({ path, label, Icon }) => (
                         <NavLink
                             key={path}
                             to={path}

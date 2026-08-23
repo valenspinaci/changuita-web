@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useEmprendimiento } from '../context/EmprendimientoContext'
 import { getClientes, crearCliente, eliminarCliente, actualizarCliente } from '../services/api'
+import HelpTooltip from '../components/HelpTooltip'
+import { useToast } from '../context/ToastContext'
 
 interface VentaCliente {
     total: string
@@ -21,6 +23,7 @@ interface ClienteAPI {
 
 export default function Clientes() {
     const { emprendimientoActivo } = useEmprendimiento()
+    const { showToast } = useToast()
     const [clientes, setClientes] = useState<ClienteAPI[]>([])
     const [loadingClientes, setLoadingClientes] = useState(true)
     const [errorClientes, setErrorClientes] = useState('')
@@ -93,9 +96,11 @@ export default function Clientes() {
             }
             limpiarFormulario()
             setMostrarFormulario(false)
+            const eraEdicion = modoEdicion
             setModoEdicion(false)
+            showToast(eraEdicion ? 'Cliente actualizado' : 'Cliente creado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al guardar cliente')
+            showToast(err.message || 'Error al guardar cliente', 'error')
         } finally {
             setGuardando(false)
         }
@@ -111,8 +116,9 @@ export default function Clientes() {
             setClientes(nuevosClientes)
             setClienteSeleccionado(nuevosClientes.length > 0 ? nuevosClientes[0] : null)
             setMostrarFormulario(false)
+            showToast('Cliente eliminado', 'success')
         } catch (err: any) {
-            alert(err.message || 'Error al eliminar cliente')
+            showToast(err.message || 'Error al eliminar cliente', 'error')
         } finally {
             setEliminando(false)
         }
@@ -145,9 +151,12 @@ export default function Clientes() {
 
             {/* Header */}
             <div className="flex flex-col gap-1">
-                <h1 className="text-[#191c1b] text-[28px] md:text-[36px] font-bold tracking-[-0.9px] leading-tight">
-                    Gestión de Clientes
-                </h1>
+                <div className="flex items-center gap-2">
+                    <h1 className="text-[#191c1b] text-[28px] md:text-[36px] font-bold tracking-[-0.9px] leading-tight">
+                        Gestión de Clientes
+                    </h1>
+                    <HelpTooltip texto="Guardá los datos de tus clientes y consultá su historial de compras completo desde su ficha." />
+                </div>
                 <p className="text-[#4c6455] text-[16px] font-medium">
                     Administrá tus contactos y construí relaciones con tus compradores frecuentes.
                 </p>
